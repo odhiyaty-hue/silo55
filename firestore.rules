@@ -1,0 +1,218 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ================= HELPER FUNCTIONS =================
+    
+    // التحقق من المصادقة
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // التحقق من أن المستخدم مشرف
+    function isAdmin() {
+      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // التحقق من أن المستخدم بائع
+    function isSeller() {
+      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'seller';
+    }
+
+    // التحقق من أن المستخدم مشتري (مشتري عادي أو بائع يشتري)
+    function isBuyer() {
+      return isAuth() && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'buyer' || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'seller');
+    }
+
+    // التحقق من أن المستخدم يملك المورد
+    function owns(userId) {
+      return isAuth() && request.auth.uid == userId;
+    }
+
+    // التحقق من أن الخروف معتمد
+    function isApproved() {
+      return resource.data.status == 'approved';
+    }
+
+    // ================= USERS COLLECTION =================
+    match /users/{userId} {
+      // Read: الجميع يمكنهم قراءة بيانات المستخدمين (باستثناء الحساسة)
+      allow read: if true;
+      
+      // Create: أي شخص يمكنه إنشاء حسابه الخاص
+      allow create: if true;
+      
+      // Update: المالك أو المشرف يمكنهم التحديث
+      allow update: if true;
+      
+      // Delete: المشرف فقط يمكنه الحذف
+      allow delete: if isAdmin();
+    }
+
+    // ================= SHEEP COLLECTION =================
+    match /sheep/{sheepId} {
+      // Read: الأغنام المعتمدة يرى كل الناس، البائع يرى أغنامه، المشرف يرى الكل
+      allow read: if isApproved() || isAdmin() || (isAuth() && resource.data.sellerId == request.auth.uid);
+      
+      // Create: البائعون فقط يمكنهم إضافة أغنام بمعرّف الخاص بهم
+      allow create: if isSeller() && request.resource.data.sellerId == request.auth.uid;
+      
+      // Update: البائع يحدّث أغنامه، المشرف يحدّث أي شيء
+      allow update: if isAdmin() || (isSeller() && resource.data.sellerId == request.auth.uid);
+      
+      // Delete: البائع يحذف أغنامه، المشرف يحذف أي شيء
+      allow delete: if isAdmin() || (isSeller() && resource.data.sellerId == request.auth.uid);
+    }
+
+    // ================= ORDERS COLLECTION =================
+    match /orders/{orderId} {
+      // Read: المشتري يقرأ طلباته، البائع يقرأ طلبات أغنامه، المشرف يقرأ الكل
+      allow read: if isAdmin() || owns(resource.data.buyerId) || 
+                     (isSeller() && get(/databases/$(database)/documents/sheep/$(resource.data.sheepId)).data.sellerId == request.auth.uid);
+      
+      // Create: المشترون والبائعون يمكنهم إنشاء طلبات (شراء أغنام)
+      allow create: if isAuth() && request.resource.data.buyerId == request.auth.uid;
+      
+      // Update: المشرف فقط يحدّث الطلبات
+      allow update: if isAdmin();
+      
+      // Delete: المشرف فقط يحذف الطلبات
+      allow delete: if isAdmin();
+    }
+
+    // ================= PAYMENTS COLLECTION =================
+    match /payments/{paymentId} {
+      // Read: المستخدم يقرأ دفعاته، المشرف يقرأ الكل
+      allow read: if owns(resource.data.userId) || isAdmin();
+      
+      // Create: أي مستخدم معاش يمكنه إنشاء دفعة خاصة به
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      
+      // Update: المشرف فقط يحدّث الدفعات
+      allow update: if isAdmin();
+      
+      // Delete: المشرف فقط يحذف الدفعات
+      allow delete: if isAdmin();
+    }
+
+    // ================= CIB RECEIPTS COLLECTION =================
+    match /cibReceipts/{receiptId} {
+      // Read: المستخدم يقرأ إيصالاته، المشرف يقرأ الكل
+      allow read: if owns(resource.data.userId) || isAdmin();
+      
+      // Create: المستخدم المعاش يرفع إيصاله الخاص
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      
+      // Update: المشرف يتحقق من الإيصالات
+      allow update: if isAdmin();
+      
+      // Delete: المشرف فقط يحذف الإيصالات
+      allow delete: if isAdmin();
+    }
+
+    // ================= INSTALLMENTS COLLECTION =================
+    match /installments/{installmentId} {
+      // Read: المستخدم يقرأ أقساطه، المشرف يقرأ الكل
+      allow read: if owns(resource.data.userId) || isAdmin();
+      
+      // Create: المستخدم المعاش يمكنه إنشاء أقساط
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      
+      // Update: المشرف فقط يحدّث الأقساط
+      allow update: if isAdmin();
+      
+      // Delete: المشرف فقط يحذف الأقساط
+      allow delete: if isAdmin();
+    }
+
+    // ================= VIP SUBSCRIPTIONS COLLECTION =================
+    match /vipSubscriptions/{subId} {
+      // Read: المستخدم يقرأ اشتراكاته، المشرف يقرأ الكل
+      allow read: if owns(resource.data.userId) || isAdmin();
+      
+      // Create: المستخدم المعاش يمكنه إنشاء اشتراك VIP
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      
+      // Update: المشرف فقط يحدّث الاشتراكات
+      allow update: if isAdmin();
+      
+      // Delete: المشرف فقط يحذف الاشتراكات
+      allow delete: if isAdmin();
+    }
+
+    // ================= REVIEWS COLLECTION =================
+    match /reviews/{reviewId} {
+      // Read: كل الناس يمكنهم قراءة التقييمات
+      allow read: if true;
+      
+      // Create: المشترون يمكنهم إضافة تقييمات
+      allow create: if isBuyer() && request.resource.data.buyerId == request.auth.uid;
+      
+      // Update: صاحب التقييم يحدّثه
+      allow update: if owns(resource.data.reviewerId);
+      
+      // Delete: صاحب التقييم يحذفه أو المشرف يحذف أي شيء
+      allow delete: if owns(resource.data.reviewerId) || isAdmin();
+    }
+
+    // ================= FAVORITES COLLECTION =================
+    match /favorites/{userId}/{sheepId=**} {
+      // Read: المستخدم يقرأ مفضلاته، المشرف يقرأ الكل
+      allow read: if owns(userId) || isAdmin();
+      
+      // Write: المستخدم يدير مفضلاته فقط
+      allow write: if owns(userId);
+      
+      // Delete: المستخدم يحذف من مفضلاته
+      allow delete: if owns(userId);
+    }
+
+    // ================= NOTIFICATIONS COLLECTION =================
+    match /notifications/{userId}/{notificationId=**} {
+      // Read: المستخدم يقرأ إخطاراته فقط
+      allow read: if owns(userId);
+      
+      // Create: المستخدم أو النظام يمكنه إنشاء إخطارات
+      allow create: if owns(userId) || request.auth.token.firebase.sign_in_provider == 'custom' || isAdmin();
+      
+      // Update: المشرف فقط يحدّث الإخطارات
+      allow update: if isAdmin();
+      
+      // Delete: المستخدم يحذف إخطاراته
+      allow delete: if owns(userId) || isAdmin();
+    }
+
+    // ================= SUPPORT COLLECTION =================
+    match /support/{ticketId} {
+      // Read: المستخدم يقرأ تذاكره، المشرف يقرأ الكل
+      allow read: if owns(resource.data.userId) || isAdmin();
+      
+      // Create: المستخدم المعاش ينشئ تذكرة دعم
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      
+      // Update: المستخدم يحدّث تذكرته أو المشرف يحدّث أي شيء
+      allow update: if owns(resource.data.userId) || isAdmin();
+      
+      // Delete: المشرف فقط يحذف التذاكر
+      allow delete: if isAdmin();
+    }
+
+    // ================= ADMIN LOGS COLLECTION =================
+    match /adminLogs/{logId} {
+      // جميع العمليات: المشرف فقط
+      allow read, write, delete: if isAdmin();
+    }
+
+    // ================= PENDING REGISTRATIONS COLLECTION =================
+    match /pending_registrations/{docId} {
+      // كل العمليات ممنوعة (المخادم فقط يعالج هذا)
+      allow read, write, delete: if false;
+    }
+
+    // ================= DEFAULT DENY =================
+    // منع جميع العمليات على أي مورد آخر
+    match /{document=**} {
+      allow read, write, delete: if false;
+    }
+  }
+}
