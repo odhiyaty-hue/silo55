@@ -300,7 +300,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('💾 Creating pending registration for:', email);
 
       // Validate required fields
-      if (!email || !password || !role || !phone || !verificationCode || !tokenExpiry) {
+      if (!email || !password || !role || !verificationCode || !tokenExpiry) {
+        console.log('❌ Missing fields:', { 
+          email: !!email, 
+          password: !!password, 
+          role: !!role, 
+          verificationCode: !!verificationCode, 
+          tokenExpiry: !!tokenExpiry 
+        });
         return res.status(400).json({
           success: false,
           error: "جميع الحقول مطلوبة"
