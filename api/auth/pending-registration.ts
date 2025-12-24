@@ -49,17 +49,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { email, password, role, phone, verificationCode, tokenExpiry } = req.body;
 
+    console.log('📦 Received registration request for:', email, 'with role:', role);
+
     // Validate required fields
     if (!email || !password || !role || !verificationCode) {
+      console.log('❌ Validation failed: Missing fields', { email: !!email, password: !!password, role: !!role, verificationCode: !!verificationCode });
       return res.status(400).json({
         success: false,
-        error: "Missing required fields"
+        error: "جميع الحقول مطلوبة"
       });
     }
 
     const { db, auth } = initializeFirebase();
 
-    // Check if email already exists
+    // Check if email already exists in Auth
     try {
       const authUser = await auth.getUserByEmail(email);
       if (authUser) {
@@ -72,6 +75,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (error.code !== 'auth/user-not-found') {
         throw error;
       }
+    }
+
+    // Also check if email exists in final users collection
+    const usersRef = db.collection('users');
+    const userSnapshot = await usersRef.where('email', '==', email).get();
+    if (!userSnapshot.empty) {
+      return res.status(400).json({
+        success: false,
+        error: "البريد الإلكتروني مستخدم بالفعل"
+      });
     }
 
     // Check/update pending registration

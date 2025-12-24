@@ -19,7 +19,7 @@ function formatPrivateKey(key: string): string {
 // Initialize Firebase Admin only if service account is provided
 if (getApps().length === 0) {
   try {
-    const projectId = process.env.VITE_FIREBASE_PROJECT_ID;
+    const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
     const privateKey = process.env.FIREBASE_PRIVATE_KEY;
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 
