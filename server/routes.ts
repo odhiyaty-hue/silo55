@@ -318,14 +318,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn('⚠️ Firebase Admin not configured - using fallback registration');
         // Fallback: store to Firestore without Auth check
         try {
-          const pendingRef = adminDb!.collection('pending_registrations');
+          // Check for existing user in Firestore collection even if Auth is missing
+          const pendingRef = adminDb?.collection('pending_registrations');
+          if (!pendingRef) throw new Error("adminDb is not available");
+
           const existingSnapshot = await pendingRef.where('email', '==', email).get();
           
           const pendingData = {
             email,
             password,
             role,
-            phone,
+            phone: phone || "",
             verificationCode,
             tokenExpiry,
             createdAt: Date.now()
@@ -375,7 +378,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email,
         password,
         role,
-        phone,
+        phone: phone || "",
         verificationCode,
         tokenExpiry,
         createdAt: Date.now()
@@ -416,10 +419,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!adminAuth || !adminDb) {
-        return res.status(503).json({
-          success: false,
-          error: "Firebase Admin not configured. Please contact administrator."
-        });
+        console.warn('⚠️ Firebase Admin not configured - using fallback completion');
+        try {
+          const pendingRef = adminDb?.collection('pending_registrations');
+          if (!pendingRef) throw new Error("adminDb is not available");
+
+          const snapshot = await pendingRef
+            .where('email', '==', email)
+            .where('verificationCode', '==', code)
+            .get();
+
+          if (snapshot.empty) {
+            return res.status(400).json({
+              success: false,
+              error: "كود التحقق غير صحيح"
+            });
+          }
+
+          const pendingData = snapshot.docs[0].data();
+          if (pendingData.tokenExpiry < Date.now()) {
+            return res.status(400).json({
+              success: false,
+              error: "انتهت صلاحية الكود"
+            });
+          }
+
+          return res.json({ success: true, message: "Verification successful (fallback)" });
+        } catch (fallbackError: any) {
+          console.error('❌ Fallback completion error:', fallbackError?.message);
+          return res.status(503).json({
+            success: false,
+            error: "خدمة التحقق غير متاحة حالياً"
+          });
+        }
       }
 
       // Get pending registration using Admin SDK
