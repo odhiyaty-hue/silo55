@@ -1,4 +1,5 @@
 // Algerian municipalities organized by wilaya
+import municipalitiesData from './data/municipalities.json';
 
 interface MunicipalityRecord {
   id: number;
@@ -10,23 +11,15 @@ interface MunicipalityRecord {
 
 // Create a map of wilaya -> communes (municipalities)
 let wilayaMunicipalitiesMap: Map<string, string[]> | null = null;
-let isLoading = false;
-let loadError: Error | null = null;
 
 // Load and process municipalities data
-async function loadMunicipalitiesData() {
-  if (wilayaMunicipalitiesMap || isLoading) {
+function loadMunicipalitiesData() {
+  if (wilayaMunicipalitiesMap) {
     return;
   }
 
-  isLoading = true;
   try {
-    const response = await fetch('/data/municipalities.json');
-    if (!response.ok) {
-      throw new Error(`Failed to fetch municipalities data: ${response.statusText}`);
-    }
-    
-    const records: MunicipalityRecord[] = await response.json();
+    const records: MunicipalityRecord[] = municipalitiesData;
     const tempMap = new Map<string, string[]>();
 
     records.forEach((record) => {
@@ -50,33 +43,26 @@ async function loadMunicipalitiesData() {
 
     wilayaMunicipalitiesMap = tempMap;
   } catch (error) {
-    loadError = error instanceof Error ? error : new Error('Unknown error loading municipalities');
-    console.error('Error loading municipalities:', loadError);
+    console.error('Error loading municipalities:', error);
     wilayaMunicipalitiesMap = new Map();
-  } finally {
-    isLoading = false;
   }
 }
 
 // Helper function to get municipalities for a specific wilaya
 export const getMunicipalitiesForWilaya = async (wilaya: string): Promise<string[]> => {
-  if (!wilayaMunicipalitiesMap && !isLoading) {
-    await loadMunicipalitiesData();
+  if (!wilayaMunicipalitiesMap) {
+    loadMunicipalitiesData();
   }
-  return wilayaMunicipalitiesMap?.get(wilaya) || [];
+  return (wilayaMunicipalitiesMap && wilayaMunicipalitiesMap.get(wilaya)) || [];
 };
 
 // Sync version for immediate access (returns cached or empty)
 export const getMunicipalitiesForWilayaSync = (wilaya: string): string[] => {
   if (!wilayaMunicipalitiesMap) {
-    // Trigger async load
-    loadMunicipalitiesData().catch(console.error);
-    return [];
+    loadMunicipalitiesData();
   }
   return wilayaMunicipalitiesMap.get(wilaya) || [];
 };
 
 // Preload municipalities on module load
-if (typeof window !== 'undefined') {
-  loadMunicipalitiesData().catch(console.error);
-}
+loadMunicipalitiesData();
