@@ -50,13 +50,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { email, password, role, phone, verificationCode, tokenExpiry } = req.body;
 
     console.log('📦 Received registration request for:', email, 'with role:', role);
+    console.log('📦 Request body keys:', Object.keys(req.body || {}));
 
     // Validate required fields
     if (!email || !password || !role || !verificationCode) {
-      console.log('❌ Validation failed: Missing fields', { email: !!email, password: !!password, role: !!role, verificationCode: !!verificationCode });
+      console.log('❌ Validation failed: Missing fields', { 
+        email: email || 'missing', 
+        password: password ? '***' : 'missing', 
+        role: role || 'missing', 
+        verificationCode: verificationCode || 'missing' 
+      });
       return res.status(400).json({
         success: false,
         error: "جميع الحقول مطلوبة"
+      });
+    }
+
+    // Validate role is valid
+    if (role !== 'buyer' && role !== 'seller') {
+      console.log('❌ Invalid role value:', role);
+      return res.status(400).json({
+        success: false,
+        error: "نوع الحساب غير صالح"
       });
     }
 

@@ -60,7 +60,7 @@ export default function Register() {
         body: JSON.stringify({
           email: data.email,
           password: data.password,
-          role: data.role,
+          role: selectedRole, // Use selectedRole directly since it's already validated
           phone: data.phone || '',
           verificationCode,
           tokenExpiry,
