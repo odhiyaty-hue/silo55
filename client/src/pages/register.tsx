@@ -52,22 +52,36 @@ export default function Register() {
 
       console.log('🔢 Generated verification code:', verificationCode);
 
+      // Ensure selectedRole is not null (shouldn't happen due to check above, but TypeScript needs this)
+      if (!selectedRole) {
+        throw new Error('Role is required');
+      }
+      
       // Store pending registration data on server
-      console.log('💾 Storing pending registration...');
+      const requestData = {
+        email: data.email,
+        password: data.password,
+        role: selectedRole, // Use selectedRole directly since it's already validated
+        phone: data.phone || '',
+        verificationCode,
+        tokenExpiry,
+      };
+      
+      console.log('💾 Storing pending registration with data:', { 
+        ...requestData, 
+        password: '***' 
+      });
+      console.log('💾 Selected role:', selectedRole);
+      
       const response = await fetch('/api/auth/pending-registration', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-          role: selectedRole, // Use selectedRole directly since it's already validated
-          phone: data.phone || '',
-          verificationCode,
-          tokenExpiry,
-        }),
+        body: JSON.stringify(requestData),
       });
 
       const result = await response.json();
+      console.log('📬 Response status:', response.status);
+      console.log('📬 Response data:', result);
 
       if (!response.ok || !result.success) {
         throw new Error(result.error || 'Failed to create pending registration');

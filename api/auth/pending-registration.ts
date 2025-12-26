@@ -39,18 +39,50 @@ function initializeFirebase() {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Set CORS and cache headers
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
   
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { email, password, role, phone, verificationCode, tokenExpiry } = req.body;
+    console.log('📦 Request method:', req.method);
+    console.log('📦 Request headers:', JSON.stringify(req.headers));
+    console.log('📦 Request body type:', typeof req.body);
+    console.log('📦 Request body raw:', req.body);
+    
+    // Parse body if it's a string
+    let bodyData = req.body;
+    if (typeof req.body === 'string') {
+      try {
+        bodyData = JSON.parse(req.body);
+      } catch (parseError) {
+        console.error('❌ Failed to parse JSON body:', parseError);
+        return res.status(400).json({
+          success: false,
+          error: "Invalid JSON format"
+        });
+      }
+    }
+    
+    const { email, password, role, phone, verificationCode, tokenExpiry } = bodyData || {};
 
-    console.log('📦 Received registration request for:', email, 'with role:', role);
-    console.log('📦 Request body keys:', Object.keys(req.body || {}));
+    console.log('📦 Extracted fields:', { 
+      email: email || 'missing', 
+      password: password ? '***' : 'missing', 
+      role: role || 'missing', 
+      phone: phone || 'missing',
+      verificationCode: verificationCode || 'missing',
+      tokenExpiry: tokenExpiry || 'missing'
+    });
 
     // Validate required fields
     if (!email || !password || !role || !verificationCode) {
