@@ -49,6 +49,17 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSheep, setSelectedSheep] = useState<Sheep | null>(null);
+  const [addImportedDialogOpen, setAddImportedDialogOpen] = useState(false);
+  const [isAddingImported, setIsAddingImported] = useState(false);
+  const [newSheep, setNewSheep] = useState({
+    price: "",
+    age: "",
+    weight: "",
+    city: "الجزائر",
+    municipality: "",
+    description: "",
+    images: [] as string[]
+  });
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -211,6 +222,40 @@ export default function AdminDashboard() {
     totalUsers: users.length,
   };
 
+  const handleAddImportedSheep = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSheep.price || !newSheep.age || !newSheep.weight || !newSheep.description) {
+      toast({ title: "خطأ", description: "يرجى ملء جميع الحقول", variant: "destructive" });
+      return;
+    }
+
+    setIsAddingImported(true);
+    try {
+      await addDoc(collection(db, "sheep"), {
+        ...newSheep,
+        price: parseInt(newSheep.price),
+        age: parseInt(newSheep.age),
+        weight: parseInt(newSheep.weight),
+        sellerId: "admin",
+        sellerEmail: "admin@odhiyati.com",
+        status: "approved",
+        isImported: true,
+        images: [], // Should ideally handle image upload
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+
+      toast({ title: "تم الإضافة", description: "تم إضافة الأضحية المستوردة بنجاح" });
+      setAddImportedDialogOpen(false);
+      fetchSheep();
+    } catch (error) {
+      console.error(error);
+      toast({ title: "خطأ", description: "فشل في إضافة الأضحية", variant: "destructive" });
+    } finally {
+      setIsAddingImported(false);
+    }
+  };
+
   const getRoleLabel = (role: string) => {
     switch (role) {
       case "admin": return "مدير";
@@ -280,9 +325,14 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8">
         {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-semibold mb-2">لوحة تحكم الإدارة</h1>
-          <p className="text-muted-foreground">إدارة شاملة للمنصة</p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-semibold mb-2">لوحة تحكم الإدارة</h1>
+            <p className="text-muted-foreground">إدارة شاملة للمنصة</p>
+          </div>
+          <Button onClick={() => setAddImportedDialogOpen(true)} className="bg-primary">
+            إضافة أضحية مستوردة +
+          </Button>
         </div>
 
         {/* Stats Cards */}

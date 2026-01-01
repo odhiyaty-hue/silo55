@@ -132,6 +132,7 @@ export interface Sheep {
   municipality?: string; // البلدية/الحي
   description: string;
   status: SheepStatus;
+  isImported?: boolean; // هل هي أضاحي مستوردة
   rejectionReason?: string; // سبب الرفض (إن وجد)
   createdAt: number;
   updatedAt?: number;
@@ -144,6 +145,7 @@ export const insertSheepSchema = z.object({
   city: z.string().min(2, "يجب اختيار الولاية"),
   municipality: z.string().min(2, "يجب اختيار البلدية"),
   description: z.string().min(10, "الوصف يجب أن يكون 10 أحرف على الأقل"),
+  isImported: z.boolean().optional(),
 });
 
 export type InsertSheep = z.infer<typeof insertSheepSchema>;
@@ -159,6 +161,7 @@ export interface Order {
   sheepData?: Partial<Sheep>; // Snapshot of sheep data at order time
   totalPrice: number;
   status: OrderStatus;
+  nationalId?: string; // رقم التعريف الوطني (للأضاحي المستوردة)
   createdAt: number;
   updatedAt?: number;
 }
@@ -166,6 +169,7 @@ export interface Order {
 export const insertOrderSchema = z.object({
   sheepId: z.string().min(1, "يجب اختيار الخروف"),
   totalPrice: z.number().min(1, "السعر غير صالح"),
+  nationalId: z.string().optional(),
 });
 
 export type InsertOrder = z.infer<typeof insertOrderSchema>;

@@ -150,6 +150,7 @@ export default function SheepDetail() {
 
       localStorage.setItem("pendingOrderId", orderRef.id);
       localStorage.setItem("pendingOrderAmount", sheep.price.toString());
+      localStorage.setItem("pendingIsImported", sheep.isImported ? "true" : "false");
 
       toast({
         title: "تم إنشاء الطلب",
@@ -257,10 +258,15 @@ export default function SheepDetail() {
           {/* Details */}
           <div className="space-y-6">
             {/* Price */}
-            <div>
+            <div className="flex flex-wrap gap-2 items-center">
               <Badge className="text-2xl font-bold px-4 py-2">
                 {sheep.price.toLocaleString()} د.ج
               </Badge>
+              {sheep.isImported && (
+                <Badge variant="outline" className="text-lg border-primary text-primary px-3 py-1">
+                  أضحية مستوردة 🌍
+                </Badge>
+              )}
             </div>
 
             {/* Metadata */}

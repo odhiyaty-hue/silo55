@@ -24,6 +24,7 @@ export default function BrowseSheep() {
   const [ageRange, setAgeRange] = useState<[number, number]>([0, 48]);
   const [weightRange, setWeightRange] = useState<[number, number]>([0, 100]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [showImportedOnly, setShowImportedOnly] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
@@ -62,6 +63,7 @@ export default function BrowseSheep() {
     if (s.age < ageRange[0] || s.age > ageRange[1]) return false;
     if (s.weight < weightRange[0] || s.weight > weightRange[1]) return false;
     if (selectedCities.length > 0 && !selectedCities.includes(s.city)) return false;
+    if (showImportedOnly && !s.isImported) return false;
     return true;
   }).sort((a, b) => {
     // Sort by seller VIP priority (VIP sellers appear first)
@@ -88,6 +90,7 @@ export default function BrowseSheep() {
     setAgeRange([0, 48]);
     setWeightRange([0, 100]);
     setSelectedCities([]);
+    setShowImportedOnly(false);
   };
 
   const FiltersContent = () => (
@@ -182,6 +185,24 @@ export default function BrowseSheep() {
               data-testid="input-weight-max"
             />
           </div>
+        </div>
+      </div>
+
+      {/* Imported Filter */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="imported-filter"
+            checked={showImportedOnly}
+            onCheckedChange={(checked) => setShowImportedOnly(!!checked)}
+            data-testid="checkbox-imported-only"
+          />
+          <Label
+            htmlFor="imported-filter"
+            className="text-base font-semibold cursor-pointer"
+          >
+            أضاحي مستوردة فقط
+          </Label>
         </div>
       </div>
 

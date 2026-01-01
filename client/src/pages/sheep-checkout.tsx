@@ -25,6 +25,8 @@ export default function SheepCheckout() {
 
   const [orderId, setOrderId] = useState<string | null>(null);
   const [amount, setAmount] = useState(0);
+  const [isImported, setIsImported] = useState(false);
+  const [nationalId, setNationalId] = useState("");
 
   useEffect(() => {
     const pending = localStorage.getItem("pendingOrderId");
@@ -33,6 +35,8 @@ export default function SheepCheckout() {
       setOrderId(pending);
       const orderAmount = localStorage.getItem("pendingOrderAmount");
       setAmount(parseInt(orderAmount || "0"));
+      const imported = localStorage.getItem("pendingIsImported") === "true";
+      setIsImported(imported);
     } else {
       setLocation("/browse");
     }
@@ -66,6 +70,15 @@ export default function SheepCheckout() {
       return;
     }
 
+    if (isImported && !nationalId) {
+      toast({
+        title: "تنبيه",
+        description: "يجب إدخال رقم التعريف الوطني للأضاحي المستوردة",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setProcessing(true);
     try {
       let receiptUrl = "";
@@ -87,6 +100,14 @@ export default function SheepCheckout() {
       };
 
       const paymentRef = await addDoc(collection(db, "payments"), paymentData);
+
+      // Update order with national ID if imported
+      if (orderId && isImported && nationalId) {
+        await updateDoc(doc(db, "orders", orderId), {
+          nationalId: nationalId,
+          updatedAt: Date.now(),
+        });
+      }
 
       if (paymentMethod === "card") {
         await addDoc(collection(db, "cibReceipts"), {
@@ -121,6 +142,7 @@ export default function SheepCheckout() {
 
       localStorage.removeItem("pendingOrderId");
       localStorage.removeItem("pendingOrderAmount");
+      localStorage.removeItem("pendingIsImported");
 
       toast({
         title: paymentMethod === "card" ? "تم استلام الوصل" : "نجح الدفع",
@@ -177,9 +199,23 @@ export default function SheepCheckout() {
 
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>تفاصيل الدفع</CardTitle>
+            <CardTitle>معلومات الطلب</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {isImported && (
+              <div className="space-y-2">
+                <Label htmlFor="national-id">رقم التعريف الوطني (للمستورد فقط)</Label>
+                <Input
+                  id="national-id"
+                  placeholder="أدخل رقم التعريف الوطني المكون من 18 رقم"
+                  value={nationalId}
+                  onChange={(e) => setNationalId(e.target.value)}
+                  className="bg-primary/5 border-primary/20"
+                />
+                <p className="text-xs text-muted-foreground">مطلوب قانونياً للأضاحي المستوردة</p>
+              </div>
+            )}
+            
             {paymentMethod === "card" && (
               <>
                 <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg mb-4">
