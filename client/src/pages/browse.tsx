@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { getSellerPriority } from "@/lib/vip-benefits";
 import Footer from "@/components/Footer";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function BrowseSheep() {
   const { user } = useAuth();
@@ -24,7 +25,7 @@ export default function BrowseSheep() {
   const [ageRange, setAgeRange] = useState<[number, number]>([0, 48]);
   const [weightRange, setWeightRange] = useState<[number, number]>([0, 100]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
-  const [showImportedOnly, setShowImportedOnly] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("local");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
@@ -63,7 +64,11 @@ export default function BrowseSheep() {
     if (s.age < ageRange[0] || s.age > ageRange[1]) return false;
     if (s.weight < weightRange[0] || s.weight > weightRange[1]) return false;
     if (selectedCities.length > 0 && !selectedCities.includes(s.city)) return false;
-    if (showImportedOnly && !s.isImported) return false;
+    
+    // Filter by tab type: local or imported
+    if (activeTab === "local" && s.isImported) return false;
+    if (activeTab === "imported" && !s.isImported) return false;
+    
     return true;
   }).sort((a, b) => {
     // Sort by seller VIP priority (VIP sellers appear first)
@@ -76,8 +81,8 @@ export default function BrowseSheep() {
 
   // Log the state for debugging
   useEffect(() => {
-    console.log("🔍 Browse Page State - Loading:", loading, "Sheep:", sheep.length, "Filtered:", filteredSheep.length);
-  }, [loading, sheep, filteredSheep]);
+    console.log("🔍 Browse Page State - Loading:", loading, "Sheep:", sheep.length, "Filtered:", filteredSheep.length, "Tab:", activeTab);
+  }, [loading, sheep, filteredSheep, activeTab]);
 
   const toggleCity = (city: string) => {
     setSelectedCities(prev =>
@@ -90,7 +95,6 @@ export default function BrowseSheep() {
     setAgeRange([0, 48]);
     setWeightRange([0, 100]);
     setSelectedCities([]);
-    setShowImportedOnly(false);
   };
 
   const FiltersContent = () => (
@@ -188,24 +192,6 @@ export default function BrowseSheep() {
         </div>
       </div>
 
-      {/* Imported Filter */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="imported-filter"
-            checked={showImportedOnly}
-            onCheckedChange={(checked) => setShowImportedOnly(!!checked)}
-            data-testid="checkbox-imported-only"
-          />
-          <Label
-            htmlFor="imported-filter"
-            className="text-base font-semibold cursor-pointer"
-          >
-            أضاحي مستوردة فقط
-          </Label>
-        </div>
-      </div>
-
       {/* Cities Filter */}
       <div className="space-y-3">
         <Label className="text-base font-semibold">المدينة</Label>
@@ -288,54 +274,97 @@ export default function BrowseSheep() {
           </div>
         </div>
 
-        <div className="flex gap-8">
-          {/* Desktop Filters Sidebar */}
-          <aside className="hidden lg:block w-64 flex-shrink-0">
-            <Card className="sticky top-24">
-              <CardHeader>
-                <CardTitle>الفلاتر</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FiltersContent />
-              </CardContent>
-            </Card>
-          </aside>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-8" dir="rtl">
+          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8">
+            <TabsTrigger value="local" className="text-lg">أضاحي محلية</TabsTrigger>
+            <TabsTrigger value="imported" className="text-lg">أضاحي مستوردة</TabsTrigger>
+          </TabsList>
 
-          {/* Sheep Grid */}
-          <div className="flex-1">
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <Card key={i}>
-                    <Skeleton className="aspect-[4/3] w-full" />
-                    <CardContent className="p-4 space-y-3">
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-10 w-full" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : filteredSheep.length === 0 ? (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <p className="text-lg text-muted-foreground mb-4">
-                    لا توجد أغنام متاحة حالياً
-                  </p>
-                  <Button onClick={clearFilters} variant="outline" data-testid="button-clear-filters-empty">
-                    مسح الفلاتر
-                  </Button>
+          <div className="flex gap-8">
+            {/* Desktop Filters Sidebar */}
+            <aside className="hidden lg:block w-64 flex-shrink-0">
+              <Card className="sticky top-24">
+                <CardHeader>
+                  <CardTitle>الفلاتر</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FiltersContent />
                 </CardContent>
               </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredSheep.map(s => (
-                  <SheepCard key={s.id} sheep={s} />
-                ))}
-              </div>
-            )}
+            </aside>
+
+            {/* Sheep Grid */}
+            <div className="flex-1">
+              <TabsContent value="local" className="mt-0">
+                {loading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <Card key={i}>
+                        <Skeleton className="aspect-[4/3] w-full" />
+                        <CardContent className="p-4 space-y-3">
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-10 w-full" />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : filteredSheep.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-12 text-center">
+                      <p className="text-lg text-muted-foreground mb-4">
+                        لا توجد أغنام محلية متاحة حالياً تطابق بحثك
+                      </p>
+                      <Button onClick={clearFilters} variant="outline" data-testid="button-clear-filters-empty-local">
+                        مسح الفلاتر
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredSheep.map(s => (
+                      <SheepCard key={s.id} sheep={s} />
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="imported" className="mt-0">
+                {loading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <Card key={i}>
+                        <Skeleton className="aspect-[4/3] w-full" />
+                        <CardContent className="p-4 space-y-3">
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-10 w-full" />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : filteredSheep.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-12 text-center">
+                      <p className="text-lg text-muted-foreground mb-4">
+                        لا توجد أغنام مستوردة متاحة حالياً تطابق بحثك
+                      </p>
+                      <Button onClick={clearFilters} variant="outline" data-testid="button-clear-filters-empty-imported">
+                        مسح الفلاتر
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredSheep.map(s => (
+                      <SheepCard key={s.id} sheep={s} />
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </div>
           </div>
-        </div>
+        </Tabs>
       </main>
       <Footer />
     </div>
