@@ -975,6 +975,47 @@ export default function AdminDashboard() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Add Imported Sheep Dialog */}
+      <Dialog open={addImportedDialogOpen} onOpenChange={setAddImportedDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>إضافة أضحية مستوردة</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddImportedSheep} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>السعر (د.ج)</Label>
+                <Input type="number" value={newSheep.price} onChange={e => setNewSheep({...newSheep, price: e.target.value})} required />
+              </div>
+              <div className="space-y-2">
+                <Label>الوزن (كجم)</Label>
+                <Input type="number" value={newSheep.weight} onChange={e => setNewSheep({...newSheep, weight: e.target.value})} required />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>العمر (شهر)</Label>
+                <Input type="number" value={newSheep.age} onChange={e => setNewSheep({...newSheep, age: e.target.value})} required />
+              </div>
+              <div className="space-y-2">
+                <Label>الولاية</Label>
+                <Input value={newSheep.city} onChange={e => setNewSheep({...newSheep, city: e.target.value})} required />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>الوصف</Label>
+              <Input value={newSheep.description} onChange={e => setNewSheep({...newSheep, description: e.target.value})} required />
+            </div>
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={() => setAddImportedDialogOpen(false)}>إلغاء</Button>
+              <Button type="submit" disabled={isAddingImported}>
+                {isAddingImported ? <Loader2 className="animate-spin ml-2 h-4 w-4" /> : "إضافة"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
