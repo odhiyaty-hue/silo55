@@ -173,7 +173,6 @@ export default function SellerDashboard() {
         sellerEmail: user.email,
         images: imageUrls,
         status: "pending",
-        isImported: !!data.isImported, // Ensure boolean
         createdAt: Date.now(),
       };
 
@@ -320,20 +319,6 @@ export default function SellerDashboard() {
           </DialogHeader>
           
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Sheep Type Selection */}
-            <div className="space-y-2">
-              <Label>نوع الأضحية *</Label>
-              <Select onValueChange={(value) => setValue("isImported", value === "imported")}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر نوع الأضحية" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="local">أضحية محلية</SelectItem>
-                  <SelectItem value="imported">أضحية مستوردة (أجنبية)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Image Upload */}
             <div className="space-y-3">
               <Label>الصور (حتى 5 صور) *</Label>
