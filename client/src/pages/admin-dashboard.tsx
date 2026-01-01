@@ -224,13 +224,14 @@ export default function AdminDashboard() {
 
   const handleAddImportedSheep = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSheep.price || !newSheep.age || !newSheep.weight || !newSheep.description) {
+    if (!newSheep.price || !newSheep.age || !newSheep.weight || !newSheep.city || !newSheep.municipality || !newSheep.description) {
       toast({ title: "خطأ", description: "يرجى ملء جميع الحقول", variant: "destructive" });
       return;
     }
 
     setIsAddingImported(true);
     try {
+      const { addDoc } = await import("firebase/firestore");
       await addDoc(collection(db, "sheep"), {
         ...newSheep,
         price: parseInt(newSheep.price),
@@ -240,13 +241,22 @@ export default function AdminDashboard() {
         sellerEmail: "admin@odhiyati.com",
         status: "approved",
         isImported: true,
-        images: [], // Should ideally handle image upload
+        images: newSheep.images || [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
 
       toast({ title: "تم الإضافة", description: "تم إضافة الأضحية المستوردة بنجاح" });
       setAddImportedDialogOpen(false);
+      setNewSheep({
+        price: "",
+        age: "",
+        weight: "",
+        city: "الجزائر",
+        municipality: "",
+        description: "",
+        images: []
+      });
       fetchSheep();
     } catch (error) {
       console.error(error);
@@ -978,7 +988,7 @@ export default function AdminDashboard() {
 
       {/* Add Imported Sheep Dialog */}
       <Dialog open={addImportedDialogOpen} onOpenChange={setAddImportedDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" dir="rtl">
           <DialogHeader>
             <DialogTitle>إضافة أضحية مستوردة</DialogTitle>
           </DialogHeader>
@@ -1004,8 +1014,23 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="space-y-2">
+              <Label>البلدية</Label>
+              <Input value={newSheep.municipality} onChange={e => setNewSheep({...newSheep, municipality: e.target.value})} required />
+            </div>
+            <div className="space-y-2">
               <Label>الوصف</Label>
               <Input value={newSheep.description} onChange={e => setNewSheep({...newSheep, description: e.target.value})} required />
+            </div>
+            <div className="space-y-2">
+              <Label>رابط الصورة (اختياري)</Label>
+              <Input
+                placeholder="https://example.com/image.jpg"
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setNewSheep({ ...newSheep, images: [e.target.value] });
+                  }
+                }}
+              />
             </div>
             <DialogFooter className="gap-2">
               <Button type="button" variant="outline" onClick={() => setAddImportedDialogOpen(false)}>إلغاء</Button>
