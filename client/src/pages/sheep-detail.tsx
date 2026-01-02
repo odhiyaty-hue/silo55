@@ -161,32 +161,32 @@ export default function SheepDetail() {
 
     setCreatingOrder(true);
     try {
-      const orderData = {
-        buyerId: user.uid,
-        buyerEmail: user.email,
-        buyerName: formData.fullName,
-        buyerPhone: formData.phone,
-        buyerCity: formData.city,
-        buyerAddress: formData.address,
-        sellerId: sheep.sellerId,
+      const salary = formData.monthlySalary ? parseFloat(formData.monthlySalary) : 0;
+      const orderData: any = {
+        buyerId: user.uid || "",
+        buyerEmail: user.email || "",
+        buyerName: formData.fullName || "",
+        buyerPhone: formData.phone || "",
+        buyerCity: formData.city || "",
+        buyerAddress: formData.address || "",
+        sellerId: sheep.sellerId || "",
         sellerEmail: sheep.sellerEmail || "",
-        sheepId: sheep.id,
-        sheepPrice: sheep.price,
-        sheepAge: sheep.age,
-        sheepWeight: sheep.weight,
-        sheepCity: sheep.city,
-        totalPrice: sheep.price,
+        sheepId: sheep.id || "",
+        sheepPrice: Number(sheep.price) || 0,
+        sheepAge: Number(sheep.age) || 0,
+        sheepWeight: Number(sheep.weight) || 0,
+        sheepCity: sheep.city || "",
+        totalPrice: Number(sheep.price) || 0,
         status: "pending",
         createdAt: Date.now(),
       };
 
       if (sheep.isImported) {
-        Object.assign(orderData, {
-          nationalId: formData.nationalId || "",
-          monthlySalary: formData.monthlySalary ? parseFloat(formData.monthlySalary) : 0,
-        });
+        orderData.nationalId = formData.nationalId || "";
+        orderData.monthlySalary = isNaN(salary) ? 0 : salary;
       }
 
+      console.log("📤 Sending order data:", orderData);
       const orderRef = await addDoc(collection(db, "orders"), orderData);
 
       localStorage.setItem("pendingOrderId", orderRef.id);
