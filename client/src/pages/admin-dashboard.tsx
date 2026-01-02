@@ -1,7 +1,8 @@
 import Header from "@/components/Header";
 import { useState, useEffect } from "react";
-import { collection, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy } from "firebase/firestore";
+import { collection, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
 import { Sheep, Order, User, VIPStatus, VIP_PACKAGES } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,6 +45,7 @@ import {
 import placeholderImage from "@assets/generated_images/sheep_product_placeholder.png";
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [sheep, setSheep] = useState<Sheep[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -271,14 +273,13 @@ export default function AdminDashboard() {
       const { uploadMultipleImagesToImgBB } = await import("@/lib/imgbb");
       const imageUrls = await uploadMultipleImagesToImgBB(selectedImportedImages);
 
-      const { addDoc } = await import("firebase/firestore");
       await addDoc(collection(db, "sheep"), {
         ...newSheep,
         price: parseInt(newSheep.price),
         age: parseInt(newSheep.age),
         weight: parseInt(newSheep.weight),
-        sellerId: "admin",
-        sellerEmail: "admin@odhiyati.com",
+        sellerId: user?.uid || "admin",
+        sellerEmail: user?.email || "admin@odhiyati.com",
         status: "approved",
         isImported: true,
         images: imageUrls,

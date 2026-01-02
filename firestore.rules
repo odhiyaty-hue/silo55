@@ -54,8 +54,8 @@ service cloud.firestore {
       // Read: الأغنام المعتمدة يرى كل الناس، البائع يرى أغنامه، المشرف يرى الكل
       allow read: if isApproved() || isAdmin() || (isAuth() && resource.data.sellerId == request.auth.uid);
       
-      // Create: البائعون فقط يمكنهم إضافة أغنام بمعرّف الخاص بهم
-      allow create: if isSeller() && request.resource.data.sellerId == request.auth.uid;
+      // Create: المشرفون يمكنهم الإضافة، أو البائعون يضيفون لأنفسهم
+      allow create: if isAdmin() || (isSeller() && request.resource.data.sellerId == request.auth.uid);
       
       // Update: البائع يحدّث أغنامه، المشرف يحدّث أي شيء
       allow update: if isAdmin() || (isSeller() && resource.data.sellerId == request.auth.uid);
