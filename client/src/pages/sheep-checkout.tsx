@@ -241,7 +241,7 @@ export default function SheepCheckout() {
                   <Label htmlFor="national-id">رقم التعريف الوطني</Label>
                   <Input
                     id="national-id"
-                    placeholder="أدخل رقم التعريف الوطني (18 رقم)"
+                    placeholder="أدخل رقم التعريف الوطني"
                     value={nationalId}
                     onChange={(e) => setNationalId(e.target.value)}
                     className="bg-primary/5 border-primary/20"
