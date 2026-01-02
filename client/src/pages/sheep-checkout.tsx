@@ -89,6 +89,25 @@ export default function SheepCheckout() {
         receiptUrl = await uploadToImgBB(receiptFile);
       }
 
+      // Update order with national ID and monthly salary if imported
+      if (orderId && isImported) {
+        const orderResponse = await fetch(`/api/orders/${orderId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            nationalId: nationalId,
+            monthlySalary: parseFloat(monthlySalary),
+          }),
+        });
+
+        if (!orderResponse.ok) {
+          const errorData = await orderResponse.json();
+          throw new Error(errorData.error || "فشل تحديث بيانات الطلب");
+        }
+      }
+
       const paymentData = {
         userId: user.uid,
         userEmail: user.email,
@@ -102,15 +121,6 @@ export default function SheepCheckout() {
       };
 
       const paymentRef = await addDoc(collection(db, "payments"), paymentData);
-
-      // Update order with national ID and monthly salary if imported
-      if (orderId && isImported) {
-        await updateDoc(doc(db, "orders", orderId), {
-          nationalId: nationalId,
-          monthlySalary: parseFloat(monthlySalary),
-          updatedAt: Date.now(),
-        });
-      }
 
       if (paymentMethod === "card") {
         await addDoc(collection(db, "cibReceipts"), {
