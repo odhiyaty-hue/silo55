@@ -1176,6 +1176,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/orders/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+
+      // Enforcement of once-per-year limit for nationalId on imported sheep orders
+      if (updateData.nationalId) {
+        const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000);
+        const existingOrders = await queryFirestore("orders", [
+          { field: "nationalId", op: "EQUAL", value: updateData.nationalId }
+        ]);
+
+        const recentOrder = existingOrders.find(o =>
+          o.id !== id &&
+          o.createdAt > oneYearAgo &&
+          o.status !== 'rejected'
+        );
+
+        if (recentOrder) {
+          return res.status(400).json({
+            error: "لا يمكن استخدام رقم التعريف الوطني أكثر من مرة في السنة الواحدة للأضاحي المستوردة"
+          });
+        }
+      }
+
+      const response = await fetch(
+        `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/orders/${id}?updateMask.fieldPaths=${Object.keys(updateData).join('&updateMask.fieldPaths=')}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": FIREBASE_API_KEY || ""
+          },
+          body: JSON.stringify({ fields: convertToFirestoreFields(updateData) })
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Firestore update error: ${response.status} ${errorText}`);
+        return res.status(response.status).json({ error: "Failed to update order" });
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("❌ Order update error:", error?.message);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Helper to convert data to Firestore fields (duplicated from storage.ts if needed, or ensure it's accessible)
+  function convertToFirestoreFields(data: any): any {
+    const fields: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value === null || value === undefined) continue;
+      if (typeof value === 'string') {
+        fields[key] = { stringValue: value };
+      } else if (typeof value === 'number') {
+        fields[key] = { doubleValue: value };
+      } else if (typeof value === 'boolean') {
+        fields[key] = { booleanValue: value };
+      }
+    }
+    return fields;
+  }
+
   const httpServer = createServer(app);
 
   return httpServer;
