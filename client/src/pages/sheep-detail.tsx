@@ -177,10 +177,15 @@ export default function SheepDetail() {
         sheepCity: sheep.city,
         totalPrice: sheep.price,
         status: "pending",
-        nationalId: formData.nationalId || null,
-        monthlySalary: formData.monthlySalary ? parseFloat(formData.monthlySalary) : null,
         createdAt: Date.now(),
       };
+
+      if (sheep.isImported) {
+        Object.assign(orderData, {
+          nationalId: formData.nationalId || "",
+          monthlySalary: formData.monthlySalary ? parseFloat(formData.monthlySalary) : 0,
+        });
+      }
 
       const orderRef = await addDoc(collection(db, "orders"), orderData);
 
