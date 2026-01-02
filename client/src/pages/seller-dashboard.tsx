@@ -230,7 +230,7 @@ export default function SellerDashboard() {
           <div>
             <h1 className="text-3xl md:text-4xl font-semibold mb-2 flex items-center gap-2">
               لوحة تحكم البائع
-              {user?.vipStatus === "vip" && (
+              {user?.vipStatus !== "none" && (
                 <Crown className="h-6 w-6 text-amber-500" />
               )}
             </h1>
@@ -239,7 +239,7 @@ export default function SellerDashboard() {
           <div className="flex gap-2">
             <Button onClick={() => setLocation("/vip-upgrade")} variant="outline" className="border-amber-500 text-amber-700 hover:bg-amber-50">
               <Crown className="ml-2 h-4 w-4" />
-              {user?.vipStatus === "vip" ? "أنت VIP ⭐" : "ترقية إلى VIP"}
+              {user?.vipStatus !== "none" ? "أنت VIP ⭐" : "ترقية إلى VIP"}
             </Button>
             <Button onClick={() => setAddDialogOpen(true)} data-testid="button-add-sheep">
               <Plus className="ml-2 h-4 w-4" />
