@@ -133,10 +133,10 @@ export default function SheepDetail() {
     if (!sheep || !user) return;
 
     if (sheep.isImported) {
-      if (!formData.nationalId || formData.nationalId.length < 18) {
+      if (!formData.nationalId || formData.nationalId.length < 5) {
         toast({
           title: "خطأ",
-          description: "رقم التعريف الوطني مطلوب (18 رقم) للأضاحي المستوردة",
+          description: "رقم التعريف الوطني مطلوب للأضاحي المستوردة",
           variant: "destructive",
         });
         return;
@@ -435,7 +435,7 @@ export default function SheepDetail() {
                   <Label htmlFor="nationalId">رقم التعريف الوطني</Label>
                   <Input
                     id="nationalId"
-                    placeholder="أدخل 18 رقم"
+                    placeholder="أدخل رقم التعريف الوطني"
                     {...register("nationalId")}
                   />
                   {errors.nationalId && (
