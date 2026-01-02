@@ -106,6 +106,7 @@ export default function SheepCheckout() {
 
       // Update order with national ID and monthly salary if imported
       if (orderId && isImported) {
+        console.log(`📝 Updating order ${orderId} for imported sheep...`);
         const orderResponse = await fetch(`/api/orders/${orderId}`, {
           method: "PATCH",
           headers: {
@@ -119,8 +120,10 @@ export default function SheepCheckout() {
 
         if (!orderResponse.ok) {
           const errorData = await orderResponse.json();
+          console.error("❌ Order update failed:", errorData);
           throw new Error(errorData.error || "فشل تحديث بيانات الطلب");
         }
+        console.log("✅ Order updated successfully");
       }
 
       const paymentData = {

@@ -1184,17 +1184,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Enforcement of once-per-year limit for nationalId on imported sheep orders
       if (updateData.nationalId) {
         const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000);
+        console.log(`🔍 Checking nationalId limit for ${updateData.nationalId}...`);
         const existingOrders = await queryFirestore("orders", [
           { field: "nationalId", op: "EQUAL", value: updateData.nationalId }
         ]);
 
+        console.log(`📋 Found ${existingOrders.length} existing orders with this nationalId`);
+
         const recentOrder = existingOrders.find(o =>
           o.id !== id &&
           o.createdAt > oneYearAgo &&
-          o.status !== 'rejected'
+          (o.status === 'confirmed' || o.status === 'delivered' || o.status === 'pending')
         );
 
         if (recentOrder) {
+          console.log(`❌ Recent order found: ${recentOrder.id}`);
           return res.status(400).json({
             error: "لا يمكن استخدام رقم التعريف الوطني أكثر من مرة في السنة الواحدة للأضاحي المستوردة"
           });
