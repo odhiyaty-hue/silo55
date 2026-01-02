@@ -27,6 +27,7 @@ export default function SheepCheckout() {
   const [amount, setAmount] = useState(0);
   const [isImported, setIsImported] = useState(false);
   const [nationalId, setNationalId] = useState("");
+  const [monthlySalary, setMonthlySalary] = useState("");
 
   useEffect(() => {
     const pending = localStorage.getItem("pendingOrderId");
@@ -70,10 +71,10 @@ export default function SheepCheckout() {
       return;
     }
 
-    if (isImported && !nationalId) {
+    if (isImported && (!nationalId || !monthlySalary)) {
       toast({
         title: "تنبيه",
-        description: "يجب إدخال رقم التعريف الوطني للأضاحي المستوردة",
+        description: "يجب إدخال رقم التعريف الوطني والراتب الشهري للأضاحي المستوردة",
         variant: "destructive",
       });
       return;
@@ -101,10 +102,11 @@ export default function SheepCheckout() {
 
       const paymentRef = await addDoc(collection(db, "payments"), paymentData);
 
-      // Update order with national ID if imported
-      if (orderId && isImported && nationalId) {
+      // Update order with national ID and monthly salary if imported
+      if (orderId && isImported) {
         await updateDoc(doc(db, "orders", orderId), {
           nationalId: nationalId,
+          monthlySalary: parseFloat(monthlySalary),
           updatedAt: Date.now(),
         });
       }
@@ -203,16 +205,30 @@ export default function SheepCheckout() {
           </CardHeader>
           <CardContent className="space-y-4">
             {isImported && (
-              <div className="space-y-2">
-                <Label htmlFor="national-id">رقم التعريف الوطني (للمستورد فقط)</Label>
-                <Input
-                  id="national-id"
-                  placeholder="أدخل رقم التعريف الوطني المكون من 18 رقم"
-                  value={nationalId}
-                  onChange={(e) => setNationalId(e.target.value)}
-                  className="bg-primary/5 border-primary/20"
-                />
-                <p className="text-xs text-muted-foreground">مطلوب قانونياً للأضاحي المستوردة</p>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="national-id">رقم التعريف الوطني</Label>
+                  <Input
+                    id="national-id"
+                    placeholder="أدخل رقم التعريف الوطني (18 رقم)"
+                    value={nationalId}
+                    onChange={(e) => setNationalId(e.target.value)}
+                    className="bg-primary/5 border-primary/20"
+                  />
+                  <p className="text-xs text-muted-foreground">مطلوب قانونياً للأضاحي المستوردة (مرة واحدة في السنة)</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="monthly-salary">الراتب الشهري (د.ج)</Label>
+                  <Input
+                    id="monthly-salary"
+                    type="number"
+                    placeholder="أدخل الراتب الشهري"
+                    value={monthlySalary}
+                    onChange={(e) => setMonthlySalary(e.target.value)}
+                    className="bg-primary/5 border-primary/20"
+                  />
+                </div>
               </div>
             )}
             

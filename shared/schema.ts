@@ -162,6 +162,7 @@ export interface Order {
   totalPrice: number;
   status: OrderStatus;
   nationalId?: string; // رقم التعريف الوطني (للأضاحي المستوردة)
+  monthlySalary?: number; // الراتب الشهري (للأضاحي المستوردة)
   createdAt: number;
   updatedAt?: number;
 }
@@ -170,6 +171,7 @@ export const insertOrderSchema = z.object({
   sheepId: z.string().min(1, "يجب اختيار الخروف"),
   totalPrice: z.number().min(1, "السعر غير صالح"),
   nationalId: z.string().optional(),
+  monthlySalary: z.number().optional(),
 });
 
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
