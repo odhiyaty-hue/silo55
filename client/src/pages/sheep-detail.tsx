@@ -177,8 +177,8 @@ export default function SheepDetail() {
         sheepCity: sheep.city,
         totalPrice: sheep.price,
         status: "pending",
-        nationalId: formData.nationalId,
-        monthlySalary: formData.monthlySalary ? parseFloat(formData.monthlySalary) : undefined,
+        nationalId: formData.nationalId || null,
+        monthlySalary: formData.monthlySalary ? parseFloat(formData.monthlySalary) : null,
         createdAt: Date.now(),
       };
 
