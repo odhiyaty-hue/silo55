@@ -23,6 +23,7 @@ import {
   Crown,
   Edit2,
   CreditCard,
+  Upload,
 } from "lucide-react";
 import {
   Dialog,
@@ -60,6 +61,9 @@ export default function AdminDashboard() {
     description: "",
     images: [] as string[]
   });
+  const [selectedImportedImages, setSelectedImportedImages] = useState<File[]>([]);
+  const [importedImagePreviews, setImportedImagePreviews] = useState<string[]>([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -222,6 +226,33 @@ export default function AdminDashboard() {
     totalUsers: users.length,
   };
 
+  const handleImportedImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length + selectedImportedImages.length > 5) {
+      toast({
+        title: "تنبيه",
+        description: "يمكنك رفع 5 صور كحد أقصى",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedImportedImages(prev => [...prev, ...files]);
+    
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImportedImagePreviews(prev => [...prev, e.target?.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImportedImage = (index: number) => {
+    setSelectedImportedImages(prev => prev.filter((_, i) => i !== index));
+    setImportedImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleAddImportedSheep = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSheep.price || !newSheep.age || !newSheep.weight || !newSheep.city || !newSheep.municipality || !newSheep.description) {
@@ -229,8 +260,17 @@ export default function AdminDashboard() {
       return;
     }
 
+    if (selectedImportedImages.length < 2) {
+      toast({ title: "خطأ", description: "يجب رفع صورتين على الأقل", variant: "destructive" });
+      return;
+    }
+
     setIsAddingImported(true);
+    setIsUploadingImages(true);
     try {
+      const { uploadMultipleImagesToImgBB } = await import("@/lib/imgbb");
+      const imageUrls = await uploadMultipleImagesToImgBB(selectedImportedImages);
+
       const { addDoc } = await import("firebase/firestore");
       await addDoc(collection(db, "sheep"), {
         ...newSheep,
@@ -241,7 +281,7 @@ export default function AdminDashboard() {
         sellerEmail: "admin@odhiyati.com",
         status: "approved",
         isImported: true,
-        images: newSheep.images || [],
+        images: imageUrls,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
@@ -257,12 +297,15 @@ export default function AdminDashboard() {
         description: "",
         images: []
       });
+      setSelectedImportedImages([]);
+      setImportedImagePreviews([]);
       fetchSheep();
     } catch (error) {
       console.error(error);
       toast({ title: "خطأ", description: "فشل في إضافة الأضحية", variant: "destructive" });
     } finally {
       setIsAddingImported(false);
+      setIsUploadingImages(false);
     }
   };
 
@@ -1021,16 +1064,48 @@ export default function AdminDashboard() {
               <Label>الوصف</Label>
               <Input value={newSheep.description} onChange={e => setNewSheep({...newSheep, description: e.target.value})} required />
             </div>
-            <div className="space-y-2">
-              <Label>رابط الصورة (اختياري)</Label>
-              <Input
-                placeholder="https://example.com/image.jpg"
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setNewSheep({ ...newSheep, images: [e.target.value] });
-                  }
-                }}
-              />
+            <div className="space-y-3">
+              <Label>الصور (2-5 صور من الجهاز) *</Label>
+              <div className="border-2 border-dashed rounded-lg p-4">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImportedImageSelect}
+                  className="hidden"
+                  id="admin-image-upload"
+                  disabled={selectedImportedImages.length >= 5}
+                />
+                <label htmlFor="admin-image-upload">
+                  <div className="flex flex-col items-center justify-center gap-2 cursor-pointer">
+                    <Upload className="h-8 w-8 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      انقر لرفع الصور ({selectedImportedImages.length}/5)
+                    </p>
+                  </div>
+                </label>
+
+                {importedImagePreviews.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mt-4">
+                    {importedImagePreviews.map((preview, idx) => (
+                      <div key={idx} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`معاينة ${idx + 1}`}
+                          className="w-full aspect-square object-cover rounded-md"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImportedImage(idx)}
+                          className="absolute top-1 left-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <DialogFooter className="gap-2">
               <Button type="button" variant="outline" onClick={() => setAddImportedDialogOpen(false)}>إلغاء</Button>
