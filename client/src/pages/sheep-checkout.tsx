@@ -87,6 +87,15 @@ export default function SheepCheckout() {
       return;
     }
 
+    if (isImported && parseFloat(monthlySalary) > 50000) {
+      toast({
+        title: "خطأ",
+        description: "الراتب الشهري لا يمكنه تجاوز 50000 دج للأضاحي المستوردة",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setProcessing(true);
     try {
       let receiptUrl = "";

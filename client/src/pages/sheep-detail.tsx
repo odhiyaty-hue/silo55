@@ -149,6 +149,14 @@ export default function SheepDetail() {
         });
         return;
       }
+      if (parseFloat(formData.monthlySalary) > 50000) {
+        toast({
+          title: "خطأ",
+          description: "الراتب الشهري لا يمكنه تجاوز 50000 دج لشراء الأضاحي المستوردة",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setCreatingOrder(true);
