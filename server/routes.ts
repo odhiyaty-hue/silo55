@@ -1180,6 +1180,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const updateData = req.body;
+      
+      console.log(`📝 Backend: Received update for order ${id}:`, updateData);
 
       // Enforcement of once-per-year limit for nationalId on imported sheep orders
       if (updateData.nationalId) {
@@ -1205,8 +1207,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      const updateUrl = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/orders/${id}?updateMask.fieldPaths=${Object.keys(updateData).join('&updateMask.fieldPaths=')}`;
+      console.log(`🌐 PATCH URL: ${updateUrl}`);
+
       const response = await fetch(
-        `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/orders/${id}?updateMask.fieldPaths=${Object.keys(updateData).join('&updateMask.fieldPaths=')}`,
+        updateUrl,
         {
           method: "PATCH",
           headers: {
@@ -1219,14 +1224,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Firestore update error: ${response.status} ${errorText}`);
-        return res.status(response.status).json({ error: "Failed to update order" });
+        console.error(`❌ Firestore update error (Status ${response.status}): ${errorText}`);
+        return res.status(response.status).json({ 
+          error: "فشل تحديث بيانات الطلب", 
+          details: errorText,
+          status: response.status 
+        });
       }
 
+      console.log(`✅ Order ${id} updated successfully in Firestore`);
       res.json({ success: true });
     } catch (error: any) {
-      console.error("❌ Order update error:", error?.message);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("❌ Order update internal error:", error?.message);
+      res.status(500).json({ error: "Internal server error", details: error?.message });
     }
   });
 
