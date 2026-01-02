@@ -65,12 +65,20 @@ export default function SellerDashboard() {
   });
 
   const selectedCity = watch("city");
+  const isImported = watch("isImported");
 
   useEffect(() => {
     if (user) {
       fetchSheep();
     }
   }, [user]);
+
+  // Handle images for imported sheep
+  useEffect(() => {
+    if (isImported && selectedImages.length === 0) {
+      // We don't force reset, but UI should show error
+    }
+  }, [isImported]);
 
   // Load municipalities when selected city changes
   useEffect(() => {
@@ -152,10 +160,15 @@ export default function SellerDashboard() {
 
   const onSubmit = async (data: InsertSheep) => {
     if (!user) return;
+    
     if (selectedImages.length === 0) {
+      const errorMsg = data.isImported 
+        ? "للأضاحي المستوردة، يجب رفع صورة واحدة على الأقل من الجهاز"
+        : "يجب رفع صورة واحدة على الأقل";
+      
       toast({
         title: "خطأ",
-        description: "يجب رفع صورة واحدة على الأقل",
+        description: errorMsg,
         variant: "destructive",
       });
       return;
@@ -470,6 +483,19 @@ export default function SellerDashboard() {
               {errors.description && (
                 <p className="text-sm text-destructive">{errors.description.message}</p>
               )}
+            </div>
+
+            {/* Imported Toggle */}
+            <div className="flex items-center space-x-2 space-x-reverse">
+              <input
+                type="checkbox"
+                id="isImported"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                {...register("isImported")}
+              />
+              <Label htmlFor="isImported" className="cursor-pointer">
+                أضحية مستوردة (تتطلب صورة إجبارية من الجهاز)
+              </Label>
             </div>
 
             {/* Submit Button */}
