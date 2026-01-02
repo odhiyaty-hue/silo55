@@ -40,6 +40,13 @@ const orderFormSchema = z.object({
   phone: z.string().regex(/^(\+213|0)[1-9]\d{8}$/, "رقم الهاتف غير صحيح"),
   address: z.string().min(5, "العنوان مطلوب"),
   city: z.string().min(1, "المدينة مطلوبة"),
+  nationalId: z.string().optional(),
+  monthlySalary: z.string().optional(),
+}).refine((data) => {
+  // We'll check isImported in the component, but we can add conditional validation here if we pass it in
+  return true;
+}, {
+  message: "بيانات الأضحية المستوردة مطلوبة",
 });
 
 type OrderFormData = z.infer<typeof orderFormSchema>;
@@ -125,6 +132,25 @@ export default function SheepDetail() {
   const handleCreateOrder = async (formData: OrderFormData) => {
     if (!sheep || !user) return;
 
+    if (sheep.isImported) {
+      if (!formData.nationalId || formData.nationalId.length < 18) {
+        toast({
+          title: "خطأ",
+          description: "رقم التعريف الوطني مطلوب (18 رقم) للأضاحي المستوردة",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!formData.monthlySalary) {
+        toast({
+          title: "خطأ",
+          description: "الراتب الشهري مطلوب للأضاحي المستوردة",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setCreatingOrder(true);
     try {
       const orderData = {
@@ -143,6 +169,8 @@ export default function SheepDetail() {
         sheepCity: sheep.city,
         totalPrice: sheep.price,
         status: "pending",
+        nationalId: formData.nationalId,
+        monthlySalary: formData.monthlySalary ? parseFloat(formData.monthlySalary) : undefined,
         createdAt: Date.now(),
       };
 
@@ -151,6 +179,8 @@ export default function SheepDetail() {
       localStorage.setItem("pendingOrderId", orderRef.id);
       localStorage.setItem("pendingOrderAmount", sheep.price.toString());
       localStorage.setItem("pendingIsImported", sheep.isImported ? "true" : "false");
+      if (formData.nationalId) localStorage.setItem("pendingNationalId", formData.nationalId);
+      if (formData.monthlySalary) localStorage.setItem("pendingMonthlySalary", formData.monthlySalary);
 
       toast({
         title: "تم إنشاء الطلب",
@@ -389,6 +419,36 @@ export default function SheepDetail() {
                 <p className="text-sm text-destructive">{errors.address.message}</p>
               )}
             </div>
+
+            {/* Imported Fields */}
+            {sheep.isImported && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="nationalId">رقم التعريف الوطني</Label>
+                  <Input
+                    id="nationalId"
+                    placeholder="أدخل 18 رقم"
+                    {...register("nationalId")}
+                  />
+                  {errors.nationalId && (
+                    <p className="text-sm text-destructive">{errors.nationalId.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="monthlySalary">الراتب الشهري (د.ج)</Label>
+                  <Input
+                    id="monthlySalary"
+                    type="number"
+                    placeholder="0.00"
+                    {...register("monthlySalary")}
+                  />
+                  {errors.monthlySalary && (
+                    <p className="text-sm text-destructive">{errors.monthlySalary.message}</p>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Order Summary */}
             <Card className="bg-muted/50">

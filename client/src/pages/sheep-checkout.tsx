@@ -39,6 +39,12 @@ export default function SheepCheckout() {
       setAmount(parseInt(orderAmount || "0"));
       const imported = localStorage.getItem("pendingIsImported") === "true";
       setIsImported(imported);
+      
+      const savedNationalId = localStorage.getItem("pendingNationalId");
+      if (savedNationalId) setNationalId(savedNationalId);
+      
+      const savedSalary = localStorage.getItem("pendingMonthlySalary");
+      if (savedSalary) setMonthlySalary(savedSalary);
     } else {
       setLocation("/browse");
     }
@@ -156,6 +162,8 @@ export default function SheepCheckout() {
       localStorage.removeItem("pendingOrderId");
       localStorage.removeItem("pendingOrderAmount");
       localStorage.removeItem("pendingIsImported");
+      localStorage.removeItem("pendingNationalId");
+      localStorage.removeItem("pendingMonthlySalary");
 
       toast({
         title: paymentMethod === "card" ? "تم استلام الوصل" : "نجح الدفع",
