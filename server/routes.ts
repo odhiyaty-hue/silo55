@@ -1219,13 +1219,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (adminDb) {
         console.log(`🛡️ Backend: Updating order ${id} using Admin SDK...`);
-        const orderRef = adminDb.collection("orders").doc(id);
-        await orderRef.update({
-          ...updateData,
-          updatedAt: Date.now()
-        });
-        console.log(`✅ Order ${id} updated successfully using Admin SDK`);
-        return res.json({ success: true });
+        try {
+          const orderRef = adminDb.collection("orders").doc(id);
+          await orderRef.update({
+            ...updateData,
+            updatedAt: Date.now()
+          });
+          console.log(`✅ Order ${id} updated successfully using Admin SDK`);
+          return res.status(200).json({ success: true });
+        } catch (dbError: any) {
+          console.error("❌ Admin SDK update failed:", dbError?.message);
+          // Continue to fallback
+        }
       }
 
       // Fallback to REST API if Admin SDK is not available

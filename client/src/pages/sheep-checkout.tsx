@@ -112,6 +112,7 @@ export default function SheepCheckout() {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
+              "Accept": "application/json"
             },
             body: JSON.stringify({
               nationalId: nationalId,
@@ -119,10 +120,21 @@ export default function SheepCheckout() {
             }),
           });
 
+          const contentType = orderResponse.headers.get("content-type");
           if (!orderResponse.ok) {
-            const errorData = await orderResponse.json();
-            console.error("❌ Order update failed:", errorData);
-            throw new Error(errorData.error || "فشل تحديث بيانات الطلب");
+            let errorMessage = "فشل تحديث بيانات الطلب";
+            if (contentType && contentType.includes("application/json")) {
+              const errorData = await orderResponse.json();
+              errorMessage = errorData.error || errorMessage;
+            } else {
+              const textError = await orderResponse.text();
+              console.error("❌ Non-JSON error:", textError);
+            }
+            throw new Error(errorMessage);
+          }
+          
+          if (contentType && contentType.includes("application/json")) {
+            await orderResponse.json();
           }
           console.log("✅ Order updated successfully");
         } catch (updateError: any) {
