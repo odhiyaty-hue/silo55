@@ -108,8 +108,9 @@ export default function SheepCheckout() {
       if (orderId && isImported) {
         console.log(`📝 Updating order ${orderId} for imported sheep...`);
         try {
+          console.log(`📝 Attempting POST update for order ${orderId}...`);
           const orderResponse = await fetch(`/api/orders/${orderId}`, {
-            method: "PATCH",
+            method: "POST",
             headers: {
               "Content-Type": "application/json",
               "Accept": "application/json"
@@ -136,7 +137,7 @@ export default function SheepCheckout() {
           if (contentType && contentType.includes("application/json")) {
             await orderResponse.json();
           }
-          console.log("✅ Order updated successfully");
+          console.log("✅ Order updated successfully via POST");
         } catch (updateError: any) {
           console.error("❌ Catch block - Order update failed:", updateError);
           throw updateError;

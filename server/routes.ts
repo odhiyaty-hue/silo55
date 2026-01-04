@@ -1176,6 +1176,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/orders/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      
+      console.log(`📝 Backend: Received POST update for order ${id}:`, updateData);
+
+      // Enforcement of once-per-year limit for nationalId on imported sheep orders
+      if (updateData.nationalId) {
+        const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000);
+        console.log(`🔍 Checking nationalId limit for ${updateData.nationalId}...`);
+        
+        // Use Admin SDK for querying if available
+        let existingOrders = [];
+        if (adminDb) {
+          const snapshot = await adminDb.collection("orders")
+            .where("nationalId", "==", updateData.nationalId)
+            .get();
+          existingOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } else {
+          existingOrders = await queryFirestore("orders", [
+            { field: "nationalId", op: "EQUAL", value: updateData.nationalId }
+          ]);
+        }
+
+        console.log(`📋 Found ${existingOrders.length} existing orders with this nationalId`);
+
+        const recentOrder = existingOrders.find((o: any) =>
+          o.id !== id &&
+          o.createdAt > oneYearAgo &&
+          (o.status === 'confirmed' || o.status === 'delivered' || o.status === 'pending')
+        );
+
+        if (recentOrder) {
+          console.log(`❌ Recent order found: ${recentOrder.id}`);
+          return res.status(400).json({
+            error: "لا يمكن استخدام رقم التعريف الوطني أكثر من مرة في السنة الواحدة للأضاحي المستوردة"
+          });
+        }
+      }
+
+      if (adminDb) {
+        console.log(`🛡️ Backend: Updating order ${id} using Admin SDK...`);
+        try {
+          const orderRef = adminDb.collection("orders").doc(id);
+          await orderRef.update({
+            ...updateData,
+            updatedAt: Date.now()
+          });
+          console.log(`✅ Order ${id} updated successfully using Admin SDK`);
+          return res.status(200).json({ success: true });
+        } catch (dbError: any) {
+          console.error("❌ Admin SDK update failed:", dbError?.message);
+          // Continue to fallback
+        }
+      }
+
+      // Fallback to REST API if Admin SDK is not available
+      const updateUrl = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/orders/${id}?updateMask.fieldPaths=${Object.keys(updateData).join('&updateMask.fieldPaths=')}`;
+      console.log(`🌐 PATCH URL (via POST endpoint): ${updateUrl}`);
+
+      const response = await fetch(
+        updateUrl,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": FIREBASE_API_KEY || ""
+          },
+          body: JSON.stringify({ fields: convertToFirestoreFields(updateData) })
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Firestore update error (Status ${response.status}): ${errorText}`);
+        return res.status(response.status).json({ 
+          error: "فشل تحديث بيانات الطلب", 
+          details: errorText,
+          status: response.status 
+        });
+      }
+
+      console.log(`✅ Order ${id} updated successfully via REST API`);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("❌ Order update internal error:", error?.message);
+      res.status(500).json({ error: "Internal server error", details: error?.message });
+    }
+  });
+
   app.patch("/api/orders/:id", async (req, res) => {
     try {
       const { id } = req.params;
