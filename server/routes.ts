@@ -1187,13 +1187,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (updateData.nationalId) {
         const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000);
         console.log(`🔍 Checking nationalId limit for ${updateData.nationalId}...`);
-        const existingOrders = await queryFirestore("orders", [
-          { field: "nationalId", op: "EQUAL", value: updateData.nationalId }
-        ]);
+        
+        // Use Admin SDK for querying if available
+        let existingOrders = [];
+        if (adminDb) {
+          const snapshot = await adminDb.collection("orders")
+            .where("nationalId", "==", updateData.nationalId)
+            .get();
+          existingOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } else {
+          existingOrders = await queryFirestore("orders", [
+            { field: "nationalId", op: "EQUAL", value: updateData.nationalId }
+          ]);
+        }
 
         console.log(`📋 Found ${existingOrders.length} existing orders with this nationalId`);
 
-        const recentOrder = existingOrders.find(o =>
+        const recentOrder = existingOrders.find((o: any) =>
           o.id !== id &&
           o.createdAt > oneYearAgo &&
           (o.status === 'confirmed' || o.status === 'delivered' || o.status === 'pending')
@@ -1210,11 +1220,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (adminDb) {
         console.log(`🛡️ Backend: Updating order ${id} using Admin SDK...`);
         const orderRef = adminDb.collection("orders").doc(id);
-        await orderRef.update(updateData);
+        await orderRef.update({
+          ...updateData,
+          updatedAt: Date.now()
+        });
         console.log(`✅ Order ${id} updated successfully using Admin SDK`);
         return res.json({ success: true });
       }
 
+      // Fallback to REST API if Admin SDK is not available
       const updateUrl = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/orders/${id}?updateMask.fieldPaths=${Object.keys(updateData).join('&updateMask.fieldPaths=')}`;
       console.log(`🌐 PATCH URL: ${updateUrl}`);
 
@@ -1240,7 +1254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      console.log(`✅ Order ${id} updated successfully in Firestore`);
+      console.log(`✅ Order ${id} updated successfully via REST API`);
       res.json({ success: true });
     } catch (error: any) {
       console.error("❌ Order update internal error:", error?.message);
