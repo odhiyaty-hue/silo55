@@ -1207,6 +1207,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      if (adminDb) {
+        console.log(`🛡️ Backend: Updating order ${id} using Admin SDK...`);
+        const orderRef = adminDb.collection("orders").doc(id);
+        await orderRef.update(updateData);
+        console.log(`✅ Order ${id} updated successfully using Admin SDK`);
+        return res.json({ success: true });
+      }
+
       const updateUrl = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/orders/${id}?updateMask.fieldPaths=${Object.keys(updateData).join('&updateMask.fieldPaths=')}`;
       console.log(`🌐 PATCH URL: ${updateUrl}`);
 
