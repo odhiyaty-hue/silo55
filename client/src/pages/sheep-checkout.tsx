@@ -32,17 +32,17 @@ export default function SheepCheckout() {
 
   useEffect(() => {
     const pending = localStorage.getItem("pendingOrderId");
-    
+
     if (pending) {
       setOrderId(pending);
       const orderAmount = localStorage.getItem("pendingOrderAmount");
       setAmount(parseInt(orderAmount || "0"));
       const imported = localStorage.getItem("pendingIsImported") === "true";
       setIsImported(imported);
-      
+
       const savedNationalId = localStorage.getItem("pendingNationalId");
       if (savedNationalId) setNationalId(savedNationalId);
-      
+
       const savedSalary = localStorage.getItem("pendingMonthlySalary");
       if (savedSalary) setMonthlySalary(savedSalary);
     } else {
@@ -99,7 +99,7 @@ export default function SheepCheckout() {
     setProcessing(true);
     try {
       let receiptUrl = "";
-      
+
       if (paymentMethod === "card" && receiptFile) {
         receiptUrl = await uploadToImgBB(receiptFile);
       }
@@ -124,18 +124,30 @@ export default function SheepCheckout() {
           const contentType = orderResponse.headers.get("content-type");
           if (!orderResponse.ok) {
             let errorMessage = "فشل تحديث بيانات الطلب";
+            console.error(`❌ Order update failed with status: ${orderResponse.status}`);
+
             if (contentType && contentType.includes("application/json")) {
-              const errorData = await orderResponse.json();
-              errorMessage = errorData.error || errorMessage;
+              try {
+                const errorData = await orderResponse.json();
+                errorMessage = errorData.error || errorMessage;
+              } catch (e) {
+                console.error("❌ Failed to parse error JSON:", e);
+              }
             } else {
               const textError = await orderResponse.text();
-              console.error("❌ Non-JSON error:", textError);
+              console.error("❌ Non-JSON error response:", textError);
+              errorMessage += ` (${orderResponse.status})`;
             }
             throw new Error(errorMessage);
           }
-          
+
+          // Verify response content before parsing
           if (contentType && contentType.includes("application/json")) {
-            await orderResponse.json();
+            try {
+              await orderResponse.json();
+            } catch (e) {
+              console.warn("⚠️ Successful response but invalid JSON:", e);
+            }
           }
           console.log("✅ Order updated successfully via POST");
         } catch (updateError: any) {
@@ -280,7 +292,7 @@ export default function SheepCheckout() {
                 </div>
               </div>
             )}
-            
+
             {paymentMethod === "card" && (
               <>
                 <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg mb-4">
