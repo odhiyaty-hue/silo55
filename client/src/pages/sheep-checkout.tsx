@@ -158,8 +158,17 @@ export default function SheepCheckout() {
           }
           console.log("✅ Order updated successfully via POST");
         } catch (updateError: any) {
-          console.error("❌ Catch block - Order update failed:", updateError);
-          throw updateError;
+          console.error("❌ Catch block - Order update failed FULL:", updateError);
+          // Ensure we throw a proper Error object with string message
+          if (updateError instanceof Error) {
+            throw updateError;
+          } else if (typeof updateError === 'string') {
+            throw new Error(updateError);
+          } else {
+            // If it's an object, try to extract meaningful info
+            const errorMsg = updateError?.message || updateError?.error || JSON.stringify(updateError);
+            throw new Error(errorMsg);
+          }
         }
       }
 
