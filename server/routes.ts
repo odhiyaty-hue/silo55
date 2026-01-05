@@ -1180,6 +1180,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       
+      console.log(`Incoming ${req.method} request for order ${id}`);
+
+      // Handle OPTIONS for CORS preflight
+      if (req.method === "OPTIONS") {
+        return res.status(200).end();
+      }
+
       // Handle GET request
       if (req.method === "GET") {
         console.log(`🐑 Fetching sheep order ${id}...`);
