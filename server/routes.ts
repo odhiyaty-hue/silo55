@@ -1202,6 +1202,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const updateData = req.body;
         console.log(`📝 Backend: Received ${req.method} update for order ${id}:`, updateData);
 
+        if (!FIREBASE_PROJECT_ID) {
+          console.error("❌ Missing FIREBASE_PROJECT_ID env var");
+          return res.status(500).json({
+            error: "Configurations Error",
+            details: "Missing FIREBASE_PROJECT_ID. Please add VITE_FIREBASE_PROJECT_ID to Vercel Environment Variables."
+          });
+        }
+
         // Enforcement of once-per-year limit for nationalId on imported sheep orders
         if (updateData.nationalId) {
           const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000);
@@ -1266,8 +1274,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If method is not supported
       res.status(405).json({ error: "Method not allowed" });
     } catch (error: any) {
-      console.error("❌ Order route internal error:", error?.message);
-      res.status(500).json({ error: "Internal server error", details: error?.message });
+      console.error("❌ Order route internal error:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({
+        error: "حدث خطأ غير متوقع في الخادم",
+        details: errorMessage
+      });
     }
   });
 
