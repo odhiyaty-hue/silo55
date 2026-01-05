@@ -1225,13 +1225,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             existingOrders = await queryFirestore("orders", [
               { field: "nationalId", op: "EQUAL", value: updateData.nationalId }
             ]);
+            console.log("REST query result count:", existingOrders.length); // DEBUG
           }
+          console.log("Debugging existingOrders content:", JSON.stringify(existingOrders)); // DEBUG
 
           const recentOrder = existingOrders.find((o: any) =>
             o.id !== id &&
             o.createdAt > oneYearAgo &&
             (o.status === 'confirmed' || o.status === 'delivered' || o.status === 'pending')
           );
+          console.log("Recent order found:", recentOrder ? "YES" : "NO"); // DEBUG
 
           if (recentOrder) {
             return res.status(400).json({
