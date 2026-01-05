@@ -129,7 +129,14 @@ export default function SheepCheckout() {
             if (contentType && contentType.includes("application/json")) {
               try {
                 const errorData = await orderResponse.json();
+                console.log("🔍 Server Error Response Body:", JSON.stringify(errorData)); // DEBUG
                 errorMessage = errorData.error || errorMessage;
+                if (typeof errorMessage === 'object') {
+                  errorMessage = JSON.stringify(errorMessage);
+                }
+                if (errorData.details) {
+                  errorMessage += `\nDetails: ${errorData.details}`;
+                }
               } catch (e) {
                 console.error("❌ Failed to parse error JSON:", e);
               }
