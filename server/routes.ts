@@ -1252,36 +1252,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
+
+        // Try Admin SDK first
         if (adminDb) {
           try {
+            console.log("Attempting update with Admin SDK...");
             const orderRef = adminDb.collection("orders").doc(id);
             await orderRef.update({
               ...updateData,
               updatedAt: Date.now()
             });
+            console.log("✅ Admin SDK update successful");
             return res.status(200).json({ success: true });
           } catch (dbError: any) {
             console.error("❌ Admin SDK update failed:", dbError?.message);
+            // Fall through to REST API
           }
         }
 
-        const updateUrl = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/orders/${id}?updateMask.fieldPaths=${Object.keys(updateData).join('&updateMask.fieldPaths=')}`;
-        const response = await fetch(updateUrl, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Goog-Api-Key": FIREBASE_API_KEY || ""
-          },
-          body: JSON.stringify({ fields: convertToFirestoreFields(updateData) })
-        });
+        // Fallback to REST API
+        try {
+          console.log("Attempting update with REST API...");
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          return res.status(response.status).json({ error: "فشل تحديث بيانات الطلب", details: errorText });
+          if (!FIREBASE_PROJECT_ID) {
+            throw new Error("FIREBASE_PROJECT_ID is not configured");
+          }
+
+          if (!FIREBASE_API_KEY) {
+            throw new Error("FIREBASE_API_KEY is not configured");
+          }
+
+          const updateUrl = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/orders/${id}?updateMask.fieldPaths=${Object.keys(updateData).join('&updateMask.fieldPaths=')}`;
+          console.log("REST API URL constructed");
+
+          const response = await fetch(updateUrl, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Goog-Api-Key": FIREBASE_API_KEY
+            },
+            body: JSON.stringify({ fields: convertToFirestoreFields(updateData) })
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("❌ REST API update failed:", errorText);
+            return res.status(response.status).json({
+              error: "فشل تحديث بيانات الطلب",
+              details: errorText
+            });
+          }
+
+          console.log("✅ REST API update successful");
+          return res.json({ success: true });
+        } catch (restError: any) {
+          console.error("❌ REST API error:", restError);
+          return res.status(500).json({
+            error: "خطأ في الاتصال بقاعدة البيانات",
+            details: restError.message || String(restError)
+          });
         }
-
-        return res.json({ success: true });
       }
+
 
       // If method is not supported
       res.status(405).json({ error: "Method not allowed" });
