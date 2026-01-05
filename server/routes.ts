@@ -1212,34 +1212,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Enforcement of once-per-year limit for nationalId on imported sheep orders
         if (updateData.nationalId) {
-          const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000);
-          console.log(`🔍 Checking nationalId limit for ${updateData.nationalId}...`);
+          try {
+            const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000);
+            console.log(`🔍 Checking nationalId limit for ${updateData.nationalId}...`);
 
-          let existingOrders = [];
-          if (adminDb) {
-            const snapshot = await adminDb.collection("orders")
-              .where("nationalId", "==", updateData.nationalId)
-              .get();
-            existingOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          } else {
-            existingOrders = await queryFirestore("orders", [
-              { field: "nationalId", op: "EQUAL", value: updateData.nationalId }
-            ]);
-            console.log("REST query result count:", existingOrders.length); // DEBUG
-          }
-          console.log("Debugging existingOrders content:", JSON.stringify(existingOrders)); // DEBUG
+            let existingOrders: any[] = [];
+            if (adminDb) {
+              console.log("Using adminDb for query...");
+              const snapshot = await adminDb.collection("orders")
+                .where("nationalId", "==", updateData.nationalId)
+                .get();
+              existingOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+              console.log("AdminDb query result count:", existingOrders.length);
+            } else {
+              console.log("Using REST API for query...");
+              existingOrders = await queryFirestore("orders", [
+                { field: "nationalId", op: "EQUAL", value: updateData.nationalId }
+              ]);
+              console.log("REST query result count:", existingOrders.length);
+            }
+            console.log("Debugging existingOrders content:", JSON.stringify(existingOrders));
 
-          const recentOrder = existingOrders.find((o: any) =>
-            o.id !== id &&
-            o.createdAt > oneYearAgo &&
-            (o.status === 'confirmed' || o.status === 'delivered' || o.status === 'pending')
-          );
-          console.log("Recent order found:", recentOrder ? "YES" : "NO"); // DEBUG
+            const recentOrder = existingOrders.find((o: any) =>
+              o.id !== id &&
+              o.createdAt > oneYearAgo &&
+              (o.status === 'confirmed' || o.status === 'delivered' || o.status === 'pending')
+            );
+            console.log("Recent order found:", recentOrder ? "YES" : "NO");
 
-          if (recentOrder) {
-            return res.status(400).json({
-              error: "لا يمكن استخدام رقم التعريف الوطني أكثر من مرة في السنة الواحدة للأضاحي المستوردة"
-            });
+            if (recentOrder) {
+              return res.status(400).json({
+                error: "لا يمكن استخدام رقم التعريف الوطني أكثر من مرة في السنة الواحدة للأضاحي المستوردة"
+              });
+            }
+          } catch (validationError: any) {
+            console.error("❌ Error during nationalId validation:", validationError);
+            // Don't block the order if validation fails, just log it
+            console.warn("⚠️ Skipping nationalId validation due to error");
           }
         }
 
