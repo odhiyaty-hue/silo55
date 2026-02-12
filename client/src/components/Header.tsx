@@ -26,14 +26,21 @@ export default function Header() {
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
         <div className="flex h-16 md:h-20 items-center justify-between">
-          {/* Logo */}
-          <Link href="/landing" className="flex items-center gap-2 px-2 py-1 rounded-md">
+          {/* Flag and Logo */}
+          <div className="flex items-center gap-4">
             <img 
-              src="/logo.png" 
-              alt="أضحيتي" 
-              className="h-14 md:h-16 w-auto object-contain animate-sheep-hop hover:animate-spin transition-all duration-300 cursor-pointer drop-shadow-lg hover:drop-shadow-2xl"
+              src="/algeria-flag.gif" 
+              alt="Algeria Flag" 
+              className="h-10 md:h-12 w-auto object-contain rounded-sm shadow-sm"
             />
-          </Link>
+            <Link href="/landing" className="flex items-center gap-2 px-2 py-1 rounded-md">
+              <img 
+                src="/logo.png" 
+                alt="أضحيتي" 
+                className="h-14 md:h-16 w-auto object-contain animate-sheep-hop hover:animate-spin transition-all duration-300 cursor-pointer drop-shadow-lg hover:drop-shadow-2xl"
+              />
+            </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1 mr-auto ml-8">
