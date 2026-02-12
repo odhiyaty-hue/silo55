@@ -6,4 +6,3 @@ vite.config.ts.*
 *.tar.gz
 .replit
 .env
-*.json
