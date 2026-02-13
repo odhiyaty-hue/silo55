@@ -226,22 +226,22 @@ export default function SellerDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8">
         {/* Page Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-semibold mb-2 flex items-center gap-2">
+            <h1 className="text-2xl md:text-4xl font-semibold mb-2 flex items-center gap-2">
               لوحة تحكم البائع
               {user?.vipStatus !== "none" && (
-                <Crown className="h-6 w-6 text-amber-500" />
+                <Crown className="h-5 w-5 md:h-6 md:w-6 text-amber-500" />
               )}
             </h1>
-            <p className="text-muted-foreground">إدارة قوائم الأغنام الخاصة بك</p>
+            <p className="text-sm md:text-base text-muted-foreground">إدارة قوائم الأغنام الخاصة بك</p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={() => setLocation("/vip-upgrade")} variant="outline" className="border-amber-500 text-amber-700 hover:bg-amber-50">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button onClick={() => setLocation("/vip-upgrade")} variant="outline" className="w-full sm:w-auto border-amber-500 text-amber-700 hover:bg-amber-50 h-11 md:h-10">
               <Crown className="ml-2 h-4 w-4" />
               {user?.vipStatus !== "none" ? "أنت VIP ⭐" : "ترقية إلى VIP"}
             </Button>
-            <Button onClick={() => setAddDialogOpen(true)} data-testid="button-add-sheep">
+            <Button onClick={() => setAddDialogOpen(true)} data-testid="button-add-sheep" className="w-full sm:w-auto h-11 md:h-10">
               <Plus className="ml-2 h-4 w-4" />
               إضافة خروف
             </Button>
@@ -249,47 +249,47 @@ export default function SellerDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <Package className="h-8 w-8 text-primary" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-8">
+          <Card className="shadow-sm">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-3 md:gap-4">
+                <Package className="h-6 w-6 md:h-8 md:w-8 text-primary" />
                 <div>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                  <p className="text-sm text-muted-foreground">إجمالي القوائم</p>
+                  <p className="text-xl md:text-2xl font-bold">{stats.total}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">إجمالي القوائم</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <Clock className="h-8 w-8 text-yellow-500" />
+          <Card className="shadow-sm">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-3 md:gap-4">
+                <Clock className="h-6 w-6 md:h-8 md:w-8 text-yellow-500" />
                 <div>
-                  <p className="text-2xl font-bold">{stats.pending}</p>
-                  <p className="text-sm text-muted-foreground">قيد المراجعة</p>
+                  <p className="text-xl md:text-2xl font-bold">{stats.pending}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">قيد المراجعة</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <CheckCircle2 className="h-8 w-8 text-green-500" />
+          <Card className="shadow-sm">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-3 md:gap-4">
+                <CheckCircle2 className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
                 <div>
-                  <p className="text-2xl font-bold">{stats.approved}</p>
-                  <p className="text-sm text-muted-foreground">مقبول</p>
+                  <p className="text-xl md:text-2xl font-bold">{stats.approved}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">مقبول</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <XCircle className="h-8 w-8 text-red-500" />
+          <Card className="shadow-sm">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-3 md:gap-4">
+                <XCircle className="h-6 w-6 md:h-8 md:w-8 text-red-500" />
                 <div>
-                  <p className="text-2xl font-bold">{stats.rejected}</p>
-                  <p className="text-sm text-muted-foreground">مرفوض</p>
+                  <p className="text-xl md:text-2xl font-bold">{stats.rejected}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">مرفوض</p>
                 </div>
               </div>
             </CardContent>
@@ -323,19 +323,19 @@ export default function SellerDashboard() {
 
       {/* Add Sheep Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+          <DialogHeader className="text-right">
             <DialogTitle>إضافة خروف جديد</DialogTitle>
             <DialogDescription>
               املأ المعلومات التالية لإضافة خروف للبيع
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
             {/* Image Upload */}
             <div className="space-y-3">
               <Label>الصور (حتى 5 صور) *</Label>
-              <div className="border-2 border-dashed rounded-lg p-4">
+              <div className="border-2 border-dashed rounded-lg p-3 md:p-4">
                 <input
                   type="file"
                   accept="image/*"
@@ -345,10 +345,10 @@ export default function SellerDashboard() {
                   id="image-upload"
                   disabled={selectedImages.length >= 5}
                 />
-                <label htmlFor="image-upload">
-                  <div className="flex flex-col items-center justify-center gap-2 cursor-pointer">
-                    <Upload className="h-8 w-8 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
+                <label htmlFor="image-upload" className="block">
+                  <div className="flex flex-col items-center justify-center gap-2 cursor-pointer py-4 md:py-6">
+                    <Upload className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
+                    <p className="text-xs md:text-sm text-muted-foreground text-center">
                       انقر لرفع الصور ({selectedImages.length}/5)
                     </p>
                   </div>
@@ -356,7 +356,7 @@ export default function SellerDashboard() {
 
                 {/* Image Previews */}
                 {imagePreviews.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mt-4">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-4">
                     {imagePreviews.map((preview, idx) => (
                       <div key={idx} className="relative group">
                         <img
@@ -367,9 +367,9 @@ export default function SellerDashboard() {
                         <button
                           type="button"
                           onClick={() => removeImage(idx)}
-                          className="absolute top-1 left-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-1 left-1 bg-destructive text-destructive-foreground rounded-full p-1 shadow-sm"
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-3 w-3" />
                         </button>
                       </div>
                     ))}
@@ -378,69 +378,74 @@ export default function SellerDashboard() {
               </div>
             </div>
 
-            {/* Price */}
-            <div className="space-y-2">
-              <Label htmlFor="price">السعر (ر.س) *</Label>
-              <Input
-                id="price"
-                type="number"
-                placeholder="مثال: 2500"
-                {...register("price", { valueAsNumber: true })}
-                data-testid="input-price"
-              />
-              {errors.price && (
-                <p className="text-sm text-destructive">{errors.price.message}</p>
-              )}
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Price */}
+              <div className="space-y-2">
+                <Label htmlFor="price">السعر (دينار جزائري) *</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  placeholder="مثال: 45000"
+                  {...register("price", { valueAsNumber: true })}
+                  data-testid="input-price"
+                  className="h-11 md:h-10"
+                />
+                {errors.price && (
+                  <p className="text-sm text-destructive">{errors.price.message}</p>
+                )}
+              </div>
 
-            {/* Age */}
-            <div className="space-y-2">
-              <Label htmlFor="age">العمر (بالأشهر) *</Label>
-              <Input
-                id="age"
-                type="number"
-                placeholder="مثال: 12"
-                {...register("age", { valueAsNumber: true })}
-                data-testid="input-age"
-              />
-              {errors.age && (
-                <p className="text-sm text-destructive">{errors.age.message}</p>
-              )}
-            </div>
+              {/* Age */}
+              <div className="space-y-2">
+                <Label htmlFor="age">العمر (بالأشهر) *</Label>
+                <Input
+                  id="age"
+                  type="number"
+                  placeholder="مثال: 12"
+                  {...register("age", { valueAsNumber: true })}
+                  data-testid="input-age"
+                  className="h-11 md:h-10"
+                />
+                {errors.age && (
+                  <p className="text-sm text-destructive">{errors.age.message}</p>
+                )}
+              </div>
 
-            {/* Weight */}
-            <div className="space-y-2">
-              <Label htmlFor="weight">الوزن (كجم) *</Label>
-              <Input
-                id="weight"
-                type="number"
-                placeholder="مثال: 45"
-                {...register("weight", { valueAsNumber: true })}
-                data-testid="input-weight"
-              />
-              {errors.weight && (
-                <p className="text-sm text-destructive">{errors.weight.message}</p>
-              )}
-            </div>
+              {/* Weight */}
+              <div className="space-y-2">
+                <Label htmlFor="weight">الوزن (كجم) *</Label>
+                <Input
+                  id="weight"
+                  type="number"
+                  placeholder="مثال: 45"
+                  {...register("weight", { valueAsNumber: true })}
+                  data-testid="input-weight"
+                  className="h-11 md:h-10"
+                />
+                {errors.weight && (
+                  <p className="text-sm text-destructive">{errors.weight.message}</p>
+                )}
+              </div>
 
-            {/* City */}
-            <div className="space-y-2">
-              <Label htmlFor="city">المدينة *</Label>
-              <Select onValueChange={(value) => setValue("city", value)}>
-                <SelectTrigger data-testid="select-city">
-                  <SelectValue placeholder="اختر المدينة" />
-                </SelectTrigger>
-                <SelectContent>
-                  {algeriaCities.map(city => (
-                    <SelectItem key={city} value={city}>
-                      {city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.city && (
-                <p className="text-sm text-destructive">{errors.city.message}</p>
-              )}
+              {/* City */}
+              <div className="space-y-2">
+                <Label htmlFor="city">الولاية *</Label>
+                <Select onValueChange={(value) => setValue("city", value)}>
+                  <SelectTrigger data-testid="select-city" className="h-11 md:h-10">
+                    <SelectValue placeholder="اختر الولاية" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {algeriaCities.map(city => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.city && (
+                  <p className="text-sm text-destructive">{errors.city.message}</p>
+                )}
+              </div>
             </div>
 
             {/* Municipality */}
@@ -450,7 +455,7 @@ export default function SellerDashboard() {
                 onValueChange={(value) => setValue("municipality", value)}
                 disabled={!selectedCity}
               >
-                <SelectTrigger data-testid="select-municipality">
+                <SelectTrigger data-testid="select-municipality" className="h-11 md:h-10">
                   <SelectValue placeholder={selectedCity ? "اختر البلدية" : "اختر الولاية أولاً"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -476,9 +481,10 @@ export default function SellerDashboard() {
               <Textarea
                 id="description"
                 placeholder="اكتب وصفاً تفصيلياً للخروف..."
-                rows={4}
+                rows={3}
                 {...register("description")}
                 data-testid="textarea-description"
+                className="resize-none"
               />
               {errors.description && (
                 <p className="text-sm text-destructive">{errors.description.message}</p>
@@ -486,33 +492,24 @@ export default function SellerDashboard() {
             </div>
 
             {/* Imported Toggle */}
-            <div className="flex items-center space-x-2 space-x-reverse">
+            <div className="flex items-center space-x-2 space-x-reverse bg-muted/30 p-3 rounded-lg">
               <input
                 type="checkbox"
                 id="isImported"
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary"
                 {...register("isImported")}
               />
-              <Label htmlFor="isImported" className="cursor-pointer">
+              <Label htmlFor="isImported" className="cursor-pointer text-sm font-medium pr-2">
                 أضحية مستوردة (تتطلب صورة إجبارية من الجهاز)
               </Label>
             </div>
 
             {/* Submit Button */}
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setAddDialogOpen(false)}
-                disabled={submitting}
-                className="flex-1"
-              >
-                إلغاء
-              </Button>
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button
                 type="submit"
                 disabled={submitting}
-                className="flex-1"
+                className="order-1 sm:order-2 flex-1 h-12 md:h-11"
                 data-testid="button-submit-sheep"
               >
                 {submitting ? (
@@ -523,6 +520,15 @@ export default function SellerDashboard() {
                 ) : (
                   "إضافة الخروف"
                 )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setAddDialogOpen(false)}
+                disabled={submitting}
+                className="order-2 sm:order-1 flex-1 h-12 md:h-11"
+              >
+                إلغاء
               </Button>
             </div>
           </form>
