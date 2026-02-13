@@ -35,7 +35,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Select,
   SelectContent,
@@ -66,7 +66,7 @@ export default function SheepDetail() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [sheep, setSheep] = useState<Sheep | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -526,7 +526,7 @@ export default function SheepDetail() {
               <DialogTitle>طلب شراء - إدخال البيانات الشخصية</DialogTitle>
               <DialogDescription>
                 يرجى إدخال بيانات التواصل الخاصة بك
-              </DrawerDescription>
+              </DialogDescription>
             </DialogHeader>
 
             <form onSubmit={handleSubmit(handleCreateOrder)} className="space-y-4">
@@ -676,7 +676,7 @@ export default function SheepDetail() {
       {/* Guest Login Dialog */}
       <Dialog open={guestLoginDialogOpen} onOpenChange={setGuestLoginDialogOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader>
+          <DialogHeader className="text-right">
             <DialogTitle>تسجيل الدخول مطلوب</DialogTitle>
             <DialogDescription>
               يجب تسجيل الدخول أو إنشاء حساب لإنشاء طلب شراء
