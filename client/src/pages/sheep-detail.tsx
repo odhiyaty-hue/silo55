@@ -27,6 +27,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import { useMobile } from "@/hooks/use-mobile";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -56,6 +66,7 @@ export default function SheepDetail() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const isMobile = useMobile();
   const [sheep, setSheep] = useState<Sheep | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -357,158 +368,310 @@ export default function SheepDetail() {
         </div>
       </div>
 
-      {/* Order Confirmation Dialog */}
-      <Dialog open={orderDialogOpen} onOpenChange={setOrderDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>طلب شراء - إدخال البيانات الشخصية</DialogTitle>
-            <DialogDescription>
-              يرجى إدخال بيانات التواصل الخاصة بك
-            </DialogDescription>
-          </DialogHeader>
+      {/* Order Confirmation Dialog/Drawer */}
+      {isMobile ? (
+        <Drawer open={orderDialogOpen} onOpenChange={setOrderDialogOpen}>
+          <DrawerContent className="max-h-[90vh] focus:outline-none">
+            <DrawerHeader className="text-right">
+              <DrawerTitle>طلب شراء - إدخال البيانات الشخصية</DrawerTitle>
+              <DrawerDescription>
+                يرجى إدخال بيانات التواصل الخاصة بك
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4 pb-8 overflow-y-auto">
+              <form onSubmit={handleSubmit(handleCreateOrder)} className="space-y-4">
+                {/* Full Name */}
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">الاسم الكامل</Label>
+                  <Input
+                    id="fullName"
+                    placeholder="أحمد محمد"
+                    {...register("fullName")}
+                  />
+                  {errors.fullName && (
+                    <p className="text-sm text-destructive">{errors.fullName.message}</p>
+                  )}
+                </div>
 
-          <form onSubmit={handleSubmit(handleCreateOrder)} className="space-y-4">
-            {/* Full Name */}
-            <div className="space-y-2">
-              <Label htmlFor="fullName">الاسم الكامل</Label>
-              <Input
-                id="fullName"
-                placeholder="أحمد محمد"
-                {...register("fullName")}
-              />
-              {errors.fullName && (
-                <p className="text-sm text-destructive">{errors.fullName.message}</p>
-              )}
-            </div>
+                {/* Phone */}
+                <div className="space-y-2">
+                  <Label htmlFor="phone">رقم الهاتف</Label>
+                  <Input
+                    id="phone"
+                    placeholder="+213612345678 أو 0612345678"
+                    {...register("phone")}
+                  />
+                  {errors.phone && (
+                    <p className="text-sm text-destructive">{errors.phone.message}</p>
+                  )}
+                </div>
 
-            {/* Phone */}
-            <div className="space-y-2">
-              <Label htmlFor="phone">رقم الهاتف</Label>
-              <Input
-                id="phone"
-                placeholder="+213612345678 أو 0612345678"
-                {...register("phone")}
-              />
-              {errors.phone && (
-                <p className="text-sm text-destructive">{errors.phone.message}</p>
-              )}
-            </div>
+                {/* City */}
+                <div className="space-y-2">
+                  <Label htmlFor="city">الولاية</Label>
+                  <Controller
+                    name="city"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر الولاية" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[200px]">
+                          {algeriaCities.map((city) => (
+                            <SelectItem key={city} value={city}>
+                              {city}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.city && (
+                    <p className="text-sm text-destructive">{errors.city.message}</p>
+                  )}
+                </div>
 
-            {/* City */}
-            <div className="space-y-2">
-              <Label htmlFor="city">الولاية</Label>
-              <Controller
-                name="city"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر الولاية" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {algeriaCities.map((city) => (
-                        <SelectItem key={city} value={city}>
-                          {city}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {/* Address */}
+                <div className="space-y-2">
+                  <Label htmlFor="address">العنوان</Label>
+                  <Input
+                    id="address"
+                    placeholder="شارع ما، الحي الإداري"
+                    {...register("address")}
+                  />
+                  {errors.address && (
+                    <p className="text-sm text-destructive">{errors.address.message}</p>
+                  )}
+                </div>
+
+                {/* Imported Fields */}
+                {sheep.isImported && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="nationalId">رقم التعريف الوطني</Label>
+                      <Input
+                        id="nationalId"
+                        placeholder="أدخل رقم التعريف الوطني"
+                        {...register("nationalId")}
+                      />
+                      {errors.nationalId && (
+                        <p className="text-sm text-destructive">{errors.nationalId.message}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="monthlySalary">الراتب الشهري (د.ج)</Label>
+                      <Input
+                        id="monthlySalary"
+                        type="number"
+                        placeholder="0.00"
+                        {...register("monthlySalary")}
+                      />
+                      {errors.monthlySalary && (
+                        <p className="text-sm text-destructive">{errors.monthlySalary.message}</p>
+                      )}
+                    </div>
+                  </>
                 )}
-              />
-              {errors.city && (
-                <p className="text-sm text-destructive">{errors.city.message}</p>
-              )}
-            </div>
 
-            {/* Address */}
-            <div className="space-y-2">
-              <Label htmlFor="address">العنوان</Label>
-              <Input
-                id="address"
-                placeholder="شارع ما، الحي الإداري"
-                {...register("address")}
-              />
-              {errors.address && (
-                <p className="text-sm text-destructive">{errors.address.message}</p>
-              )}
-            </div>
+                {/* Order Summary */}
+                <Card className="bg-muted/50">
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">السعر:</span>
+                      <span className="font-semibold">{sheep.price.toLocaleString()} د.ج</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">العمر:</span>
+                      <span className="font-semibold">{sheep.age} شهر</span>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            {/* Imported Fields */}
-            {sheep.isImported && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="nationalId">رقم التعريف الوطني</Label>
-                  <Input
-                    id="nationalId"
-                    placeholder="أدخل رقم التعريف الوطني"
-                    {...register("nationalId")}
-                  />
-                  {errors.nationalId && (
-                    <p className="text-sm text-destructive">{errors.nationalId.message}</p>
+                <DrawerFooter className="px-0 pt-4 flex-col gap-2">
+                  {isGuest ? (
+                    <Button
+                      type="button"
+                      className="w-full"
+                      onClick={() => {
+                        localStorage.removeItem("guestMode");
+                        setOrderDialogOpen(false);
+                        setLocation("/login");
+                      }}
+                    >
+                      سجل الدخول أولاً
+                    </Button>
+                  ) : (
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={creatingOrder}
+                    >
+                      {creatingOrder ? "جاري الإنشاء..." : "تأكيد الطلب"}
+                    </Button>
                   )}
-                </div>
+                  <DrawerClose asChild>
+                    <Button variant="outline" className="w-full" disabled={creatingOrder}>إلغاء</Button>
+                  </DrawerClose>
+                </DrawerFooter>
+              </form>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={orderDialogOpen} onOpenChange={setOrderDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader className="text-right">
+              <DialogTitle>طلب شراء - إدخال البيانات الشخصية</DialogTitle>
+              <DialogDescription>
+                يرجى إدخال بيانات التواصل الخاصة بك
+              </DrawerDescription>
+            </DialogHeader>
 
-                <div className="space-y-2">
-                  <Label htmlFor="monthlySalary">الراتب الشهري (د.ج)</Label>
-                  <Input
-                    id="monthlySalary"
-                    type="number"
-                    placeholder="0.00"
-                    {...register("monthlySalary")}
-                  />
-                  {errors.monthlySalary && (
-                    <p className="text-sm text-destructive">{errors.monthlySalary.message}</p>
+            <form onSubmit={handleSubmit(handleCreateOrder)} className="space-y-4">
+              {/* Full Name */}
+              <div className="space-y-2 text-right">
+                <Label htmlFor="fullName">الاسم الكامل</Label>
+                <Input
+                  id="fullName"
+                  placeholder="أحمد محمد"
+                  {...register("fullName")}
+                />
+                {errors.fullName && (
+                  <p className="text-sm text-destructive">{errors.fullName.message}</p>
+                )}
+              </div>
+
+              {/* Phone */}
+              <div className="space-y-2 text-right">
+                <Label htmlFor="phone">رقم الهاتف</Label>
+                <Input
+                  id="phone"
+                  placeholder="+213612345678 أو 0612345678"
+                  {...register("phone")}
+                />
+                {errors.phone && (
+                  <p className="text-sm text-destructive">{errors.phone.message}</p>
+                )}
+              </div>
+
+              {/* City */}
+              <div className="space-y-2 text-right">
+                <Label htmlFor="city">الولاية</Label>
+                <Controller
+                  name="city"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر الولاية" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {algeriaCities.map((city) => (
+                          <SelectItem key={city} value={city}>
+                            {city}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   )}
-                </div>
-              </>
-            )}
+                />
+                {errors.city && (
+                  <p className="text-sm text-destructive">{errors.city.message}</p>
+                )}
+              </div>
 
-            {/* Order Summary */}
-            <Card className="bg-muted/50">
-              <CardContent className="p-4 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">السعر:</span>
-                  <span className="font-semibold">{sheep.price.toLocaleString()} د.ج</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">العمر:</span>
-                  <span className="font-semibold">{sheep.age} شهر</span>
-                </div>
-              </CardContent>
-            </Card>
+              {/* Address */}
+              <div className="space-y-2 text-right">
+                <Label htmlFor="address">العنوان</Label>
+                <Input
+                  id="address"
+                  placeholder="شارع ما، الحي الإداري"
+                  {...register("address")}
+                />
+                {errors.address && (
+                  <p className="text-sm text-destructive">{errors.address.message}</p>
+                )}
+              </div>
 
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOrderDialogOpen(false)}
-                disabled={creatingOrder}
-              >
-                إلغاء
-              </Button>
-              {isGuest ? (
+              {/* Imported Fields */}
+              {sheep.isImported && (
+                <>
+                  <div className="space-y-2 text-right">
+                    <Label htmlFor="nationalId">رقم التعريف الوطني</Label>
+                    <Input
+                      id="nationalId"
+                      placeholder="أدخل رقم التعريف الوطني"
+                      {...register("nationalId")}
+                    />
+                    {errors.nationalId && (
+                      <p className="text-sm text-destructive">{errors.nationalId.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 text-right">
+                    <Label htmlFor="monthlySalary">الراتب الشهري (د.ج)</Label>
+                    <Input
+                      id="monthlySalary"
+                      type="number"
+                      placeholder="0.00"
+                      {...register("monthlySalary")}
+                    />
+                    {errors.monthlySalary && (
+                      <p className="text-sm text-destructive">{errors.monthlySalary.message}</p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Order Summary */}
+              <Card className="bg-muted/50">
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">السعر:</span>
+                    <span className="font-semibold">{sheep.price.toLocaleString()} د.ج</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">العمر:</span>
+                    <span className="font-semibold">{sheep.age} شهر</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <DialogFooter className="gap-2">
                 <Button
                   type="button"
-                  onClick={() => {
-                    localStorage.removeItem("guestMode");
-                    setOrderDialogOpen(false);
-                    setLocation("/login");
-                  }}
-                >
-                  سجل الدخول أولاً
-                </Button>
-              ) : (
-                <Button
-                  type="submit"
+                  variant="outline"
+                  onClick={() => setOrderDialogOpen(false)}
                   disabled={creatingOrder}
                 >
-                  {creatingOrder ? "جاري الإنشاء..." : "تأكيد الطلب"}
+                  إلغاء
                 </Button>
-              )}
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+                {isGuest ? (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      localStorage.removeItem("guestMode");
+                      setOrderDialogOpen(false);
+                      setLocation("/login");
+                    }}
+                  >
+                    سجل الدخول أولاً
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    disabled={creatingOrder}
+                  >
+                    {creatingOrder ? "جاري الإنشاء..." : "تأكيد الطلب"}
+                  </Button>
+                )}
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Guest Login Dialog */}
       <Dialog open={guestLoginDialogOpen} onOpenChange={setGuestLoginDialogOpen}>
