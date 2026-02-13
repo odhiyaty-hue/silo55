@@ -144,7 +144,7 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
           <div className="text-center text-sm text-muted-foreground">
             <p>&copy; 2025 أضحيتي. جميع الحقوق محفوظة.</p>
-            <p className="mt-2">Developed by <a href="https://novawebdv.vercel.app" target="_blank" rel="noopener noreferrer" className="font-semibold text-foreground hover:text-primary transition-colors cursor-pointer">NovaWeb</a></p>
+            <p className="mt-2">Developed by <a href="https://www.novawebdv.com" target="_blank" rel="noopener noreferrer" className="font-semibold text-foreground hover:text-primary transition-colors cursor-pointer">NovaWeb</a></p>
           </div>
         </div>
       </footer>

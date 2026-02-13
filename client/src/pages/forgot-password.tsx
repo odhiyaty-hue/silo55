@@ -398,7 +398,7 @@ export default function ForgotPassword() {
 
       <div className="relative z-10 py-8 text-center">
         <p className="text-sm font-semibold text-gray-700 tracking-wider">
-          Developed by <a href="https://novawebdv.vercel.app" target="_blank" rel="noopener noreferrer" className="text-amber-700 font-bold hover:text-amber-600 transition-colors duration-300 cursor-pointer">NovaWeb</a>
+          Developed by <a href="https://www.novawebdv.com" target="_blank" rel="noopener noreferrer" className="text-amber-700 font-bold hover:text-amber-600 transition-colors duration-300 cursor-pointer">NovaWeb</a>
         </p>
       </div>
     </div>

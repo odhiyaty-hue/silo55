@@ -8,7 +8,7 @@ export default function Footer() {
           <p className="mt-2">
             Developed by{" "}
             <a
-              href="https://novawebdv.vercel.app"
+              href="https://www.novawebdv.com"
               target="_blank"
               rel="noopener noreferrer"
               className="font-semibold text-foreground hover:text-primary transition-colors cursor-pointer"
