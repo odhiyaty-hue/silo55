@@ -37,8 +37,8 @@ export default function LandingPage() {
           setStats({
             usersCount: 1000 + (data.usersCount || 0),
             salesCount: 500 + (data.salesCount || 0),
-            localSheepCount: data.localSheepCount || 0,
-            importedSheepCount: data.importedSheepCount || 0
+            localSheepCount: 4 + (data.localSheepCount || 0),
+            importedSheepCount: 1 + (data.importedSheepCount || 0)
           });
         }
       } catch (error) {
@@ -131,7 +131,7 @@ export default function LandingPage() {
               <CardContent className="p-6 text-center">
                 <Star className="h-8 w-8 mx-auto mb-3 text-primary" />
                 <p className="text-3xl font-bold mb-1">{stats.importedSheepCount}</p>
-                <p className="text-sm text-muted-foreground">عدد الأضاحي الأجنبية</p>
+                <p className="text-sm text-muted-foreground">عدد الأضاحي المستوردة</p>
               </CardContent>
             </Card>
           </div>
