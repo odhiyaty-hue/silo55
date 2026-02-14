@@ -1343,6 +1343,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return fields;
   }
 
+  // Statistics endpoint
+  app.get("/api/stats", async (req, res) => {
+    try {
+      if (!adminDb) {
+        return res.json({
+          usersCount: 0,
+          salesCount: 0,
+          localSheepCount: 0,
+          importedSheepCount: 0
+        });
+      }
+
+      const usersRef = adminDb.collection('users');
+      const ordersRef = adminDb.collection('orders');
+      const sheepRef = adminDb.collection('sheep');
+
+      const [usersSnap, ordersSnap, localSheepSnap, importedSheepSnap] = await Promise.all([
+        usersRef.get(),
+        ordersRef.where('status', '==', 'completed').get(),
+        sheepRef.where('isImported', '==', false).get(),
+        sheepRef.where('isImported', '==', true).get()
+      ]);
+
+      res.json({
+        usersCount: usersSnap.size || 0,
+        salesCount: ordersSnap.size || 0,
+        localSheepCount: localSheepSnap.size || 0,
+        importedSheepCount: importedSheepSnap.size || 0
+      });
+    } catch (error) {
+      console.error('Stats error:', error);
+      res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,32 @@ import trustImage from "@assets/generated_images/trust_verification_illustration
 
 export default function LandingPage() {
   const { user } = useAuth();
+  const [stats, setStats] = useState({
+    usersCount: 1000,
+    salesCount: 500,
+    localSheepCount: 0,
+    importedSheepCount: 0
+  });
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const response = await fetch('/api/stats');
+        if (response.ok) {
+          const data = await response.json();
+          setStats({
+            usersCount: 1000 + (data.usersCount || 0),
+            salesCount: 500 + (data.salesCount || 0),
+            localSheepCount: data.localSheepCount || 0,
+            importedSheepCount: data.importedSheepCount || 0
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    }
+    fetchStats();
+  }, []);
 
   return (
     <div className="bg-background w-full">
@@ -82,29 +109,29 @@ export default function LandingPage() {
             <Card>
               <CardContent className="p-6 text-center">
                 <Users className="h-8 w-8 mx-auto mb-3 text-primary" />
-                <p className="text-3xl font-bold mb-1">1000+</p>
-                <p className="text-sm text-muted-foreground">مستخدم نشط</p>
+                <p className="text-3xl font-bold mb-1">+{stats.usersCount}</p>
+                <p className="text-sm text-muted-foreground">عدد المستخدمين</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-6 text-center">
                 <TrendingUp className="h-8 w-8 mx-auto mb-3 text-primary" />
-                <p className="text-3xl font-bold mb-1">500+</p>
+                <p className="text-3xl font-bold mb-1">+{stats.salesCount}</p>
                 <p className="text-sm text-muted-foreground">عملية بيع</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-6 text-center">
-                <Award className="h-8 w-8 mx-auto mb-3 text-primary" />
-                <p className="text-3xl font-bold mb-1">100%</p>
-                <p className="text-sm text-muted-foreground">معاملات آمنة</p>
+                <ShieldCheck className="h-8 w-8 mx-auto mb-3 text-primary" />
+                <p className="text-3xl font-bold mb-1">{stats.localSheepCount}</p>
+                <p className="text-sm text-muted-foreground">عدد الأضاحي المحلية</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-6 text-center">
                 <Star className="h-8 w-8 mx-auto mb-3 text-primary" />
-                <p className="text-3xl font-bold mb-1">4.8</p>
-                <p className="text-sm text-muted-foreground">تقييم المستخدمين</p>
+                <p className="text-3xl font-bold mb-1">{stats.importedSheepCount}</p>
+                <p className="text-sm text-muted-foreground">عدد الأضاحي الأجنبية</p>
               </CardContent>
             </Card>
           </div>
