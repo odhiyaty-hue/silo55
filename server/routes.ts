@@ -185,13 +185,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           body: JSON.stringify({
             structuredQuery: {
               from: [{ collectionId: "sheep" }],
-              where: {
-                fieldFilter: {
-                  field: { fieldPath: "status" },
-                  op: "EQUAL",
-                  value: { stringValue: "approved" }
-                }
-              }
             }
           })
         }
@@ -201,14 +194,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let importedSheepCount = 0;
       if (sheepResponse.ok) {
         const result = await sheepResponse.json();
+        console.log("🐑 Raw sheep query result count:", Array.isArray(result) ? result.length : "not an array");
         if (Array.isArray(result)) {
           result.forEach(item => {
             if (item.document) {
               const data = extractDocumentData(item.document.fields);
-              if (data.isImported === true) {
-                importedSheepCount++;
-              } else {
-                localSheepCount++;
+              console.log("🐑 Sheep item data:", { id: item.document.name.split('/').pop(), isImported: data.isImported, status: data.status });
+              
+              // Only count approved sheep
+              if (data.status === "approved") {
+                if (data.isImported === true || String(data.isImported) === "true") {
+                  importedSheepCount++;
+                } else {
+                  localSheepCount++;
+                }
               }
             }
           });
@@ -227,13 +226,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           body: JSON.stringify({
             structuredQuery: {
               from: [{ collectionId: "orders" }],
-              where: {
-                fieldFilter: {
-                  field: { fieldPath: "status" },
-                  op: "EQUAL",
-                  value: { stringValue: "confirmed" }
-                }
-              }
             }
           })
         }
@@ -242,7 +234,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let salesCount = 0;
       if (ordersResponse.ok) {
         const result = await ordersResponse.json();
-        salesCount = Array.isArray(result) ? result.filter(item => item.document).length : 0;
+        if (Array.isArray(result)) {
+          result.forEach(item => {
+            if (item.document) {
+              const data = extractDocumentData(item.document.fields);
+              if (data.status === "confirmed") {
+                salesCount++;
+              }
+            }
+          });
+        }
       }
 
       const stats = {
