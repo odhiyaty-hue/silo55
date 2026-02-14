@@ -37,8 +37,8 @@ export default function LandingPage() {
           setStats({
             usersCount: 1000 + (data.usersCount || 0),
             salesCount: 500 + (data.salesCount || 0),
-            localSheepCount: 4 + (data.localSheepCount || 0),
-            importedSheepCount: 1 + (data.importedSheepCount || 0)
+            localSheepCount: (data.localSheepCount || 0),
+            importedSheepCount: (data.importedSheepCount || 0)
           });
         }
       } catch (error) {

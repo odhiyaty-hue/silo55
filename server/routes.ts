@@ -144,6 +144,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Get dashboard/landing stats
+  app.get("/api/stats", async (req, res) => {
+    try {
+      console.log("📊 Fetching platform statistics...");
+
+      // 1. Get users count
+      const usersResponse = await fetch(
+        `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": FIREBASE_API_KEY || ""
+          },
+          body: JSON.stringify({
+            structuredQuery: {
+              from: [{ collectionId: "users" }],
+              select: { fields: [{ fieldPath: "__name__" }] }
+            }
+          })
+        }
+      );
+      
+      let usersCount = 0;
+      if (usersResponse.ok) {
+        const result = await usersResponse.json();
+        usersCount = Array.isArray(result) ? result.filter(item => item.document).length : 0;
+      }
+
+      // 2. Get approved sheep counts (local vs imported)
+      const sheepResponse = await fetch(
+        `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": FIREBASE_API_KEY || ""
+          },
+          body: JSON.stringify({
+            structuredQuery: {
+              from: [{ collectionId: "sheep" }],
+              where: {
+                fieldFilter: {
+                  field: { fieldPath: "status" },
+                  op: "EQUAL",
+                  value: { stringValue: "approved" }
+                }
+              }
+            }
+          })
+        }
+      );
+
+      let localSheepCount = 0;
+      let importedSheepCount = 0;
+      if (sheepResponse.ok) {
+        const result = await sheepResponse.json();
+        if (Array.isArray(result)) {
+          result.forEach(item => {
+            if (item.document) {
+              const data = extractDocumentData(item.document.fields);
+              if (data.isImported === true) {
+                importedSheepCount++;
+              } else {
+                localSheepCount++;
+              }
+            }
+          });
+        }
+      }
+
+      // 3. Get confirmed orders count
+      const ordersResponse = await fetch(
+        `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": FIREBASE_API_KEY || ""
+          },
+          body: JSON.stringify({
+            structuredQuery: {
+              from: [{ collectionId: "orders" }],
+              where: {
+                fieldFilter: {
+                  field: { fieldPath: "status" },
+                  op: "EQUAL",
+                  value: { stringValue: "confirmed" }
+                }
+              }
+            }
+          })
+        }
+      );
+
+      let salesCount = 0;
+      if (ordersResponse.ok) {
+        const result = await ordersResponse.json();
+        salesCount = Array.isArray(result) ? result.filter(item => item.document).length : 0;
+      }
+
+      const stats = {
+        usersCount,
+        salesCount,
+        localSheepCount,
+        importedSheepCount
+      };
+
+      console.log("✅ Stats compiled:", stats);
+      res.json(stats);
+    } catch (error: any) {
+      console.error("❌ Stats error:", error?.message);
+      res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
+
   // Get sheep listings (public endpoint for guests and users)
   app.get("/api/sheep", async (req, res) => {
     try {
