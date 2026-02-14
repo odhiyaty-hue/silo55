@@ -313,7 +313,7 @@ export default function SheepCheckout() {
               <>
                 <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg mb-4">
                   <p className="text-sm text-blue-900 dark:text-blue-100 font-semibold mb-2">🏦 تحويل بنكي:</p>
-                  <p className="text-sm text-blue-900 dark:text-blue-100">رقم الحساب: <strong>123 456 789</strong></p>
+                  <p className="text-sm text-blue-900 dark:text-blue-100">رقم الحساب: <strong>00799999000628394627</strong></p>
                   <p className="text-sm text-blue-900 dark:text-blue-100">البنك: CIB الجزائر</p>
                   <p className="text-sm text-blue-900 dark:text-blue-100 mt-2">حوّل المبلغ ثم ارفع صورة الوصل أدناه</p>
                 </div>
