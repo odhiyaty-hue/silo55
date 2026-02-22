@@ -108,7 +108,7 @@ export default function AdminDashboard() {
       id: doc.id,
       ...doc.data()
     })) as Sheep[];
-    setSheep(sheepData);
+    setSheep(sheepData.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
   };
 
   const fetchOrders = async () => {
@@ -120,7 +120,7 @@ export default function AdminDashboard() {
       })) as Order[];
       console.log("🔍 عدد الطلبات المجلوبة:", ordersData.length);
       console.log("📋 الطلبات:", ordersData);
-      setOrders(ordersData);
+      setOrders(ordersData.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
     } catch (error) {
       console.error("❌ خطأ في جلب الطلبات:", error);
     }
