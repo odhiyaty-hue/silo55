@@ -81,7 +81,7 @@ function Router() {
         </ProtectedRoute>
       </Route>
       <Route path="/seller/profile">
-        <ProtectedRoute allowedRoles={["seller"]}>
+        <ProtectedRoute allowedRoles={["seller", "buyer"]}>
           <SellerProfile />
         </ProtectedRoute>
       </Route>

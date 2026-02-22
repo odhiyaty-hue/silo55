@@ -148,6 +148,7 @@ export default function Header() {
                       <button 
                         onClick={() => setProfileOpen(false)}
                         className="w-full text-right px-4 py-2 hover:bg-accent/10 rounded-t-lg text-sm transition-colors flex items-center justify-end gap-2 border-b"
+                        data-testid="link-profile"
                       >
                         <User className="h-4 w-4" />
                         الملف الشخصي

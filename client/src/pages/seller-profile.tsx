@@ -63,6 +63,8 @@ export default function SellerProfile() {
     }
   }, [user, setValue]);
 
+  const isSeller = user?.role === "seller";
+
   const onSubmit = async (data: UpdateSellerProfile) => {
     if (!user) return;
 
@@ -81,9 +83,11 @@ export default function SellerProfile() {
         description: "تم تحديث بيانات الملف الشخصي بنجاح",
       });
 
-      setTimeout(() => {
-        setLocation("/seller");
-      }, 1000);
+      if (isSeller) {
+        setTimeout(() => {
+          setLocation("/seller");
+        }, 1000);
+      }
     } catch (error) {
       console.error("Error updating profile:", error);
       toast({
@@ -104,7 +108,7 @@ export default function SellerProfile() {
     );
   }
 
-  if (!user || user.role !== "seller") {
+  if (!user || (user.role !== "seller" && user.role !== "buyer")) {
     return null;
   }
 
@@ -114,32 +118,36 @@ export default function SellerProfile() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-right mb-2">
-            📋 إكمال البيانات الشخصية
+            📋 {isSeller ? "إكمال البيانات الشخصية" : "الملف الشخصي"}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 text-right">
-            يرجى إكمال جميع البيانات الشخصية والاتصال لتفعيل حسابك كبائع
+            {isSeller 
+              ? "يرجى إكمال جميع البيانات الشخصية والاتصال لتفعيل حسابك كبائع" 
+              : "يمكنك تحديث بياناتك الشخصية وعنوانك هنا"}
           </p>
         </div>
 
         {/* Alert */}
-        <Card className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-950/20">
-          <CardContent className="pt-6 flex gap-4 text-right">
-            <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-blue-900 dark:text-blue-100">
-                البيانات مطلوبة
-              </p>
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                يجب إكمال جميع البيانات الشخصية والعنوان ورقم الهاتف
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {isSeller && (
+          <Card className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+            <CardContent className="pt-6 flex gap-4 text-right">
+              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-blue-900 dark:text-blue-100">
+                  البيانات مطلوبة
+                </p>
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  يجب إكمال جميع البيانات الشخصية والعنوان ورقم الهاتف
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Form */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-right">معلومات البائع</CardTitle>
+            <CardTitle className="text-right">{isSeller ? "معلومات البائع" : "معلومات المشتري"}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -255,7 +263,7 @@ export default function SellerProfile() {
                     جاري الحفظ...
                   </>
                 ) : (
-                  "✅ حفظ البيانات والمتابعة"
+                  "✅ حفظ البيانات"
                 )}
               </Button>
             </form>
