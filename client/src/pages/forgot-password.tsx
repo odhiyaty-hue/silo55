@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, KeyRound, ArrowLeft, CheckCircle } from "lucide-react";
+import { Loader2, Mail, KeyRound, ArrowLeft, CheckCircle, Eye, EyeOff } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import loginBgGif from "@assets/images/login-bg.gif";
 
@@ -37,6 +37,8 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [resending, setResending] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const emailForm = useForm<EmailData>({
     resolver: zodResolver(emailSchema),
@@ -312,12 +314,20 @@ export default function ForgotPassword() {
                     <KeyRound className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="newPassword"
-                      type="password"
+                      type={showNewPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      className="pr-10"
+                      className="pr-10 text-right"
                       data-testid="input-new-password"
                       {...resetForm.register("newPassword")}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      data-testid="button-toggle-new-password"
+                    >
+                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                   {resetForm.formState.errors.newPassword && (
                     <p className="text-sm text-destructive">{resetForm.formState.errors.newPassword.message}</p>
@@ -330,12 +340,20 @@ export default function ForgotPassword() {
                     <KeyRound className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="confirmPassword"
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      className="pr-10"
+                      className="pr-10 text-right"
                       data-testid="input-confirm-password"
                       {...resetForm.register("confirmPassword")}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      data-testid="button-toggle-confirm-password"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                   {resetForm.formState.errors.confirmPassword && (
                     <p className="text-sm text-destructive">{resetForm.formState.errors.confirmPassword.message}</p>
