@@ -190,182 +190,231 @@ export default function AdminPaymentTab() {
 
   return (
     <div className="space-y-6">
-      <div className="grid md:grid-cols-3 gap-4">
-        <Card>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="border-yellow-200 dark:border-yellow-900/50 bg-yellow-50/30 dark:bg-yellow-900/10">
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-yellow-600">{pendingReceipts.length}</div>
-              <p className="text-sm text-muted-foreground mt-2">وصلات في الانتظار</p>
+              <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-500">{pendingReceipts.length}</div>
+              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-400 mt-2">وصلات في الانتظار</p>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-green-200 dark:border-green-900/50 bg-green-50/30 dark:bg-green-900/10">
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">{verifiedReceipts.length}</div>
-              <p className="text-sm text-muted-foreground mt-2">وصلات موثقة</p>
+              <div className="text-3xl font-bold text-green-600 dark:text-green-500">{verifiedReceipts.length}</div>
+              <p className="text-sm font-medium text-green-800 dark:text-green-400 mt-2">وصلات موثقة</p>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-900/10">
           <CardContent className="pt-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-red-600">{rejectedReceipts.length}</div>
-              <p className="text-sm text-muted-foreground mt-2">وصلات مرفوضة</p>
+              <div className="text-3xl font-bold text-red-600 dark:text-red-500">{rejectedReceipts.length}</div>
+              <p className="text-sm font-medium text-red-800 dark:text-red-400 mt-2">وصلات مرفوضة</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>وصلات التحويل البنكي (CIB)</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-xl font-bold">وصلات التحويل البنكي (CIB)</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>البريد الإلكتروني</TableHead>
-                  <TableHead>المبلغ</TableHead>
-                  <TableHead>النوع</TableHead>
-                  <TableHead>التاريخ</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead>الإجراء</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {cibReceipts.map((receipt) => (
-                  <TableRow key={receipt.id}>
-                    <TableCell className="font-medium">{receipt.userEmail}</TableCell>
-                    <TableCell>{receipt.amount.toLocaleString()} د.ج</TableCell>
-                    <TableCell>
-                      {receipt.vipUpgrade ? (
-                        <Badge className="bg-purple-500/10 text-purple-700 dark:text-purple-400">
-                          ترقية VIP
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-blue-500/10 text-blue-700 dark:text-blue-400">
-                          طلب شراء
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>{new Date(receipt.createdAt).toLocaleDateString("ar-DZ")}</TableCell>
-                    <TableCell>{getStatusBadge(receipt.status)}</TableCell>
-                    <TableCell>
-                      {receipt.status === "pending" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setSelectedReceipt(receipt)}
-                        >
-                          <Eye className="h-4 w-4" />
-                          مراجعة
-                        </Button>
-                      )}
-                    </TableCell>
+          <div className="rounded-md border overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="min-w-[150px]">البريد الإلكتروني</TableHead>
+                    <TableHead className="min-w-[100px]">المبلغ</TableHead>
+                    <TableHead className="min-w-[120px]">النوع</TableHead>
+                    <TableHead className="min-w-[120px]">التاريخ</TableHead>
+                    <TableHead className="min-w-[100px]">الحالة</TableHead>
+                    <TableHead className="text-left min-w-[100px]">الإجراء</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {cibReceipts.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                        لا توجد وصلات حالياً
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    cibReceipts.map((receipt) => (
+                      <TableRow key={receipt.id} className="hover:bg-muted/30">
+                        <TableCell className="font-medium truncate max-w-[150px]">{receipt.userEmail}</TableCell>
+                        <TableCell className="font-bold">{receipt.amount.toLocaleString()} د.ج</TableCell>
+                        <TableCell>
+                          {receipt.vipUpgrade ? (
+                            <Badge className="bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800">
+                              ترقية VIP
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800">
+                              طلب شراء
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{new Date(receipt.createdAt).toLocaleDateString("ar-DZ")}</TableCell>
+                        <TableCell>{getStatusBadge(receipt.status)}</TableCell>
+                        <TableCell className="text-left">
+                          {receipt.status === "pending" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 gap-1"
+                              onClick={() => setSelectedReceipt(receipt)}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">مراجعة</span>
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>إجمالي المدفوعات</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-xl font-bold">إجمالي المدفوعات</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>البريد الإلكتروني</TableHead>
-                  <TableHead>المبلغ</TableHead>
-                  <TableHead>طريقة الدفع</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead>التاريخ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {payments.slice(0, 10).map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell className="font-medium">{payment.userEmail}</TableCell>
-                    <TableCell>{payment.amount.toLocaleString()} د.ج</TableCell>
-                    <TableCell>
-                      {payment.method === "card"
-                        ? "تحويل بنكي"
-                        : payment.method === "cash"
-                        ? "دفع نقدي"
-                        : "تقسيط"}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                    <TableCell>{new Date(payment.createdAt).toLocaleDateString("ar-DZ")}</TableCell>
+          <div className="rounded-md border overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="min-w-[150px]">البريد الإلكتروني</TableHead>
+                    <TableHead className="min-w-[100px]">المبلغ</TableHead>
+                    <TableHead className="min-w-[120px]">طريقة الدفع</TableHead>
+                    <TableHead className="min-w-[100px]">الحالة</TableHead>
+                    <TableHead className="min-w-[120px]">التاريخ</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {payments.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                        لا توجد مدفوعات حالياً
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    payments.slice(0, 10).map((payment) => (
+                      <TableRow key={payment.id} className="hover:bg-muted/30">
+                        <TableCell className="font-medium truncate max-w-[150px]">{payment.userEmail}</TableCell>
+                        <TableCell className="font-bold">{payment.amount.toLocaleString()} د.ج</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {payment.method === "card"
+                              ? "تحويل بنكي"
+                              : payment.method === "cash"
+                              ? "دفع نقدي"
+                              : "تقسيط"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(payment.status)}</TableCell>
+                        <TableCell className="text-muted-foreground">{new Date(payment.createdAt).toLocaleDateString("ar-DZ")}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </CardContent>
       </Card>
 
       <Dialog open={!!selectedReceipt} onOpenChange={(open) => !open && setSelectedReceipt(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl w-[95vw] rounded-xl">
           <DialogHeader>
-            <DialogTitle>مراجعة وصل التحويل</DialogTitle>
+            <DialogTitle className="text-2xl">مراجعة وصل التحويل</DialogTitle>
             <DialogDescription>
-              تحقق من الوصل وقرر ما إذا كان صحيحًا
+              تحقق من تفاصيل الوصل المرفق قبل اتخاذ القرار
             </DialogDescription>
           </DialogHeader>
 
           {selectedReceipt && (
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">المستخدم</p>
-                <p className="font-semibold">{selectedReceipt.userEmail}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">المبلغ</p>
-                <p className="font-semibold text-lg">{selectedReceipt.amount.toLocaleString()} د.ج</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">صورة الوصل</p>
-                <img
-                  src={selectedReceipt.receiptImageUrl}
-                  alt="Receipt"
-                  className="w-full h-auto rounded-lg border"
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+              <div className="space-y-4">
+                <div className="p-3 bg-muted/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">المستخدم</p>
+                  <p className="font-semibold break-all">{selectedReceipt.userEmail}</p>
+                </div>
+                <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
+                  <p className="text-xs text-primary/70 uppercase tracking-wider mb-1">المبلغ المطلوب</p>
+                  <p className="font-bold text-2xl text-primary">{selectedReceipt.amount.toLocaleString()} د.ج</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="reason" className="text-sm font-medium">سبب الرفض (في حالة الرفض)</Label>
+                  <Input
+                    id="reason"
+                    className="h-12"
+                    placeholder="مثال: الصورة غير واضحة"
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="reason">سبب الرفض (اختياري)</Label>
-                <Input
-                  id="reason"
-                  placeholder="أدخل سبب الرفض إذا لزم الأمر"
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                />
+              <div className="space-y-2">
+                <p className="text-sm font-medium mb-1">صورة الوصل</p>
+                <div className="relative aspect-[3/4] rounded-lg border-2 border-dashed overflow-hidden group">
+                  <img
+                    src={selectedReceipt.receiptImageUrl}
+                    alt="Receipt"
+                    className="w-full h-full object-contain bg-black/5"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                    <Eye className="text-white h-8 w-8" />
+                  </div>
+                </div>
+                <a 
+                  href={selectedReceipt.receiptImageUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline flex items-center justify-center gap-1 mt-2"
+                >
+                  فتح الصورة في نافذة جديدة
+                </a>
               </div>
             </div>
           )}
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="flex-col sm:flex-row gap-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              className="flex-1 h-12"
+              onClick={() => setSelectedReceipt(null)}
+              disabled={processing}
+            >
+              إلغاء
+            </Button>
             <Button
               variant="destructive"
+              className="flex-1 h-12 gap-2"
               onClick={handleRejectReceipt}
               disabled={processing}
             >
-              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <XCircle className="h-4 w-4 mr-2" />}
-              رفض
+              {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-5 w-5" />}
+              رفض الوصل
             </Button>
             <Button
-              className="bg-green-600 hover:bg-green-700"
+              className="flex-[2] h-12 gap-2 bg-green-600 hover:bg-green-700 text-white"
               onClick={handleVerifyReceipt}
               disabled={processing}
             >
-              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-              قبول وتفعيل
+              {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-5 w-5" />}
+              تأكيد وتفعيل
             </Button>
           </DialogFooter>
         </DialogContent>

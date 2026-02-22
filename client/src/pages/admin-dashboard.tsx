@@ -390,47 +390,55 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <Package className="h-8 w-8 text-primary" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Package className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+                </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.totalSheep}</p>
-                  <p className="text-sm text-muted-foreground">إجمالي الأغنام</p>
+                  <p className="text-xl md:text-2xl font-bold">{stats.totalSheep}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">إجمالي الأغنام</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <Clock className="h-8 w-8 text-yellow-500" />
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="p-2 bg-yellow-500/10 rounded-lg">
+                  <Clock className="h-6 w-6 md:h-8 md:w-8 text-yellow-500" />
+                </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.pendingSheep}</p>
-                  <p className="text-sm text-muted-foreground">قيد المراجعة</p>
+                  <p className="text-xl md:text-2xl font-bold">{stats.pendingSheep}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">قيد المراجعة</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <ShoppingBag className="h-8 w-8 text-blue-500" />
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="p-2 bg-blue-500/10 rounded-lg">
+                  <ShoppingBag className="h-6 w-6 md:h-8 md:w-8 text-blue-500" />
+                </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.totalOrders}</p>
-                  <p className="text-sm text-muted-foreground">الطلبات</p>
+                  <p className="text-xl md:text-2xl font-bold">{stats.totalOrders}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">الطلبات</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <Users className="h-8 w-8 text-green-500" />
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="p-2 bg-green-500/10 rounded-lg">
+                  <Users className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
+                </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.totalUsers}</p>
-                  <p className="text-sm text-muted-foreground">المستخدمون</p>
+                  <p className="text-xl md:text-2xl font-bold">{stats.totalUsers}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">المستخدمون</p>
                 </div>
               </div>
             </CardContent>
@@ -439,31 +447,33 @@ export default function AdminDashboard() {
 
         {/* Tabs */}
         <Tabs defaultValue="pending" className="space-y-6">
-          <div className="overflow-x-auto">
-            <TabsList className="inline-flex w-max gap-2 p-1">
-            <TabsTrigger value="pending" data-testid="tab-pending">
-              قيد المراجعة ({pendingSheep.length})
-            </TabsTrigger>
-            <TabsTrigger value="all" data-testid="tab-all">
-              جميع الأغنام
-            </TabsTrigger>
-            <TabsTrigger value="sellers" data-testid="tab-sellers">
-              البائعون ({users.filter(u => u.role === "seller").length})
-            </TabsTrigger>
-            <TabsTrigger value="users" data-testid="tab-users">
-              المستخدمون
-            </TabsTrigger>
-            <TabsTrigger value="vip" data-testid="tab-vip">
-              إدارة VIP ({users.filter(u => u.vipStatus && u.vipStatus !== "none").length})
-            </TabsTrigger>
-            <TabsTrigger value="orders" data-testid="tab-orders">
-              الطلبات
-            </TabsTrigger>
-            <TabsTrigger value="payments" data-testid="tab-payments">
-              <CreditCard className="h-4 w-4 ml-1" />
-              الدفع
-            </TabsTrigger>
-            </TabsList>
+          <div className="relative">
+            <div className="overflow-x-auto pb-2 scrollbar-hide">
+              <TabsList className="inline-flex w-auto min-w-full justify-start md:justify-center gap-1 p-1 bg-muted/50">
+                <TabsTrigger value="pending" className="whitespace-nowrap px-4 py-2" data-testid="tab-pending">
+                  قيد المراجعة ({pendingSheep.length})
+                </TabsTrigger>
+                <TabsTrigger value="all" className="whitespace-nowrap px-4 py-2" data-testid="tab-all">
+                  جميع الأغنام
+                </TabsTrigger>
+                <TabsTrigger value="sellers" className="whitespace-nowrap px-4 py-2" data-testid="tab-sellers">
+                  البائعون ({users.filter(u => u.role === "seller").length})
+                </TabsTrigger>
+                <TabsTrigger value="users" className="whitespace-nowrap px-4 py-2" data-testid="tab-users">
+                  المستخدمون
+                </TabsTrigger>
+                <TabsTrigger value="vip" className="whitespace-nowrap px-4 py-2" data-testid="tab-vip">
+                  إدارة VIP ({users.filter(u => u.vipStatus && u.vipStatus !== "none").length})
+                </TabsTrigger>
+                <TabsTrigger value="orders" className="whitespace-nowrap px-4 py-2" data-testid="tab-orders">
+                  الطلبات
+                </TabsTrigger>
+                <TabsTrigger value="payments" className="whitespace-nowrap px-4 py-2" data-testid="tab-payments">
+                  <CreditCard className="h-4 w-4 ml-2" />
+                  الدفع
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </div>
 
           {/* Payments Management Tab */}
