@@ -260,28 +260,29 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
             {/* تفاصيل الأضحية */}
             <Card>
               <CardHeader>
-                <CardTitle>تفاصيل الأضحية</CardTitle>
+                <CardTitle className="text-right">تفاصيل الأضحية</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* الصور */}
                 {order.sheepImages && order.sheepImages.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-sm font-semibold">الصور</p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <p className="text-sm font-semibold text-right">الصور</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                       {order.sheepImages.map((image, idx) => (
-                        <img
-                          key={idx}
-                          src={image}
-                          alt={`صورة الأضحية ${idx + 1}`}
-                          className="w-full h-32 rounded-lg object-cover"
-                        />
+                        <div key={idx} className="aspect-video sm:aspect-square relative rounded-lg overflow-hidden border">
+                          <img
+                            src={image}
+                            alt={`صورة الأضحية ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
                       ))}
                     </div>
                   </div>
                 )}
 
                 {/* المواصفات */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 text-right">
                   <div>
                     <p className="text-xs text-muted-foreground">النوع</p>
                     <p className="font-semibold">{order.sheepType}</p>
@@ -296,12 +297,12 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">السعر</p>
-                    <p className="font-semibold text-primary">{order.sheepPrice} د.ج</p>
+                    <p className="font-semibold text-primary">{order.sheepPrice?.toLocaleString()} د.ج</p>
                   </div>
                 </div>
 
                 {order.sheepDescription && (
-                  <div>
+                  <div className="text-right">
                     <p className="text-xs text-muted-foreground mb-2">الوصف</p>
                     <p className="text-sm">{order.sheepDescription}</p>
                   </div>

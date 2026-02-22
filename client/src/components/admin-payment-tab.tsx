@@ -336,29 +336,29 @@ export default function AdminPaymentTab() {
       <Dialog open={!!selectedReceipt} onOpenChange={(open) => !open && setSelectedReceipt(null)}>
         <DialogContent className="max-w-2xl w-[95vw] rounded-xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl">مراجعة وصل التحويل</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-2xl text-right">مراجعة وصل التحويل</DialogTitle>
+            <DialogDescription className="text-right">
               تحقق من تفاصيل الوصل المرفق قبل اتخاذ القرار
             </DialogDescription>
           </DialogHeader>
 
           {selectedReceipt && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-              <div className="space-y-4">
-                <div className="p-3 bg-muted/30 rounded-lg">
+              <div className="space-y-4 order-2 md:order-1">
+                <div className="p-3 bg-muted/30 rounded-lg text-right">
                   <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">المستخدم</p>
-                  <p className="font-semibold break-all">{selectedReceipt.userEmail}</p>
+                  <p className="font-semibold break-all text-sm md:text-base">{selectedReceipt.userEmail}</p>
                 </div>
-                <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
+                <div className="p-3 bg-primary/5 rounded-lg border border-primary/10 text-right">
                   <p className="text-xs text-primary/70 uppercase tracking-wider mb-1">المبلغ المطلوب</p>
-                  <p className="font-bold text-2xl text-primary">{selectedReceipt.amount.toLocaleString()} د.ج</p>
+                  <p className="font-bold text-xl md:text-2xl text-primary">{selectedReceipt.amount.toLocaleString()} د.ج</p>
                 </div>
                 
-                <div className="space-y-2">
+                <div className="space-y-2 text-right">
                   <Label htmlFor="reason" className="text-sm font-medium">سبب الرفض (في حالة الرفض)</Label>
                   <Input
                     id="reason"
-                    className="h-12"
+                    className="h-10 md:h-12 text-right"
                     placeholder="مثال: الصورة غير واضحة"
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
@@ -366,13 +366,13 @@ export default function AdminPaymentTab() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <p className="text-sm font-medium mb-1">صورة الوصل</p>
-                <div className="relative aspect-[3/4] rounded-lg border-2 border-dashed overflow-hidden group">
+              <div className="space-y-2 order-1 md:order-2">
+                <p className="text-sm font-medium mb-1 text-right">صورة الوصل</p>
+                <div className="relative aspect-video md:aspect-[3/4] rounded-lg border-2 border-dashed overflow-hidden group bg-muted/20">
                   <img
                     src={selectedReceipt.receiptImageUrl}
                     alt="Receipt"
-                    className="w-full h-full object-contain bg-black/5"
+                    className="w-full h-full object-contain"
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                     <Eye className="text-white h-8 w-8" />
@@ -382,26 +382,26 @@ export default function AdminPaymentTab() {
                   href={selectedReceipt.receiptImageUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-xs text-primary hover:underline flex items-center justify-center gap-1 mt-2"
+                  className="text-xs text-primary hover:underline flex items-center justify-center gap-1 mt-2 font-bold"
                 >
-                  فتح الصورة في نافذة جديدة
+                  فتح الصورة بحجم كامل
                 </a>
               </div>
             </div>
           )}
 
-          <DialogFooter className="flex-col sm:flex-row gap-3 pt-4 border-t">
+          <DialogFooter className="flex flex-col sm:flex-row-reverse gap-3 pt-4 border-t">
             <Button
-              variant="outline"
-              className="flex-1 h-12"
-              onClick={() => setSelectedReceipt(null)}
+              className="flex-[2] h-10 md:h-12 gap-2 bg-green-600 hover:bg-green-700 text-white w-full"
+              onClick={handleVerifyReceipt}
               disabled={processing}
             >
-              إلغاء
+              {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-5 w-5" />}
+              تأكيد وتفعيل
             </Button>
             <Button
               variant="destructive"
-              className="flex-1 h-12 gap-2"
+              className="flex-1 h-10 md:h-12 gap-2 w-full"
               onClick={handleRejectReceipt}
               disabled={processing}
             >
@@ -409,12 +409,12 @@ export default function AdminPaymentTab() {
               رفض الوصل
             </Button>
             <Button
-              className="flex-[2] h-12 gap-2 bg-green-600 hover:bg-green-700 text-white"
-              onClick={handleVerifyReceipt}
+              variant="outline"
+              className="flex-1 h-10 md:h-12 w-full"
+              onClick={() => setSelectedReceipt(null)}
               disabled={processing}
             >
-              {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-5 w-5" />}
-              تأكيد وتفعيل
+              إلغاء
             </Button>
           </DialogFooter>
         </DialogContent>
