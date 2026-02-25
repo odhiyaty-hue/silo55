@@ -105,9 +105,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     await pendingDoc.ref.delete();
 
+    let customToken = null;
+    try {
+      customToken = await auth.createCustomToken(authUser.uid);
+    } catch (tokenError) {
+      console.error('Error generating custom token:', tokenError);
+    }
+
     res.status(200).json({ 
       success: true, 
-      message: "Registration completed successfully" 
+      message: "Registration completed successfully",
+      customToken: customToken
     });
   } catch (error: any) {
     console.error('Complete registration error:', error);
