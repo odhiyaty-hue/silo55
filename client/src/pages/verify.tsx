@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { auth } from '@/lib/firebase';
+import { signInWithCustomToken } from 'firebase/auth';
 
 export default function VerifyEmailPage() {
   const [, setLocation] = useLocation();
@@ -80,18 +82,29 @@ export default function VerifyEmailPage() {
       }
 
       console.log('✅ Verification successful, account created');
+      
+      if (data.customToken) {
+        try {
+          console.log('🔐 Signing in with custom token...');
+          await signInWithCustomToken(auth, data.customToken);
+          console.log('✅ Auto-login successful');
+        } catch (loginError) {
+          console.error('❌ Auto-login error:', loginError);
+        }
+      }
+
       setStatus('success');
-      setMessage('تم إنشاء حسابك بنجاح! يمكنك الآن تسجيل الدخول.');
+      setMessage('تم إنشاء حسابك وتفعيل الدخول بنجاح!');
       toast({
-        title: 'تم إنشاء الحساب',
-        description: 'تم تفعيل حسابك بنجاح',
+        title: 'تم تفعيل الحساب',
+        description: 'تم تسجيل دخولك تلقائياً',
       });
 
-      // Redirect to login after 3 seconds
+      // Redirect to home after 2 seconds
       setTimeout(() => {
-        console.log('🔄 Redirecting to login...');
-        setLocation('/login');
-      }, 3000);
+        console.log('🔄 Redirecting to home...');
+        setLocation('/');
+      }, 2000);
     } catch (error: any) {
       console.error('❌ Verification error:', error);
       setStatus('error');
@@ -217,13 +230,13 @@ export default function VerifyEmailPage() {
               </p>
               <div className="space-y-3">
                 <p className="text-center text-sm text-muted-foreground">
-                  سيتم توجيهك تلقائياً لصفحة تسجيل الدخول...
+                  جاري تحويلك للصفحة الرئيسية...
                 </p>
                 <Button 
-                  onClick={() => setLocation('/login')}
+                  onClick={() => setLocation('/')}
                   className="w-full bg-primary hover:bg-primary/90"
                 >
-                  الذهاب لتسجيل الدخول الآن
+                  الذهاب للصفحة الرئيسية الآن
                 </Button>
               </div>
             </>
