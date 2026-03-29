@@ -99,6 +99,16 @@ export default function PrintInvoice({ order, type, sellerData }: PrintInvoicePr
                   <span className="text-slate-500 font-medium">المدينة:</span> 
                   <span className="font-semibold">{sellerData?.city || order.sellerCity || "-"}</span>
                 </p>
+                {sellerData?.address && (
+                  <p className="flex justify-between">
+                    <span className="text-slate-500 font-medium">العنوان:</span> 
+                    <span className="font-semibold">{sellerData.address}</span>
+                  </p>
+                )}
+                <p className="flex justify-between">
+                  <span className="text-slate-500 font-medium">البريد:</span> 
+                  <span className="font-semibold">{sellerData?.email || order.sellerEmail || "-"}</span>
+                </p>
               </>
             )}
             {isBuyer && (
