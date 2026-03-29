@@ -15,11 +15,11 @@ export default function PrintInvoice({ order, type, sellerData }: PrintInvoicePr
 
   // معلومات البائع حسب نوع الفاتورة
   const displaySellerName = isBuyer ? "odhiyaty" : (sellerData?.fullName || order.sellerName || "البائع");
-  const displaySellerEmail = isBuyer ? "support@odhiyaty.com" : (sellerData?.email || order.sellerEmail || "-");
+  const displaySellerEmail = isBuyer ? "odhiyaty@gmail.com" : (sellerData?.email || order.sellerEmail || "-");
   
   // معلومات المشتري حسب نوع الفاتورة
   const displayBuyerName = isSeller ? "odhiyaty" : (order.buyerName || "المشتري");
-  const displayBuyerEmail = isSeller ? "orders@odhiyaty.com" : (order.buyerEmail || "-");
+  const displayBuyerEmail = isSeller ? "odhiyaty@gmail.com" : (order.buyerEmail || "-");
 
   const formatDate = (timestamp: number) => {
     try {
