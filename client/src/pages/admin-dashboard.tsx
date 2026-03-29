@@ -103,6 +103,7 @@ export default function AdminDashboard() {
   const [sheepStatusFilter, setSheepStatusFilter] = useState<string>("all");
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
+  const [userVipFilter, setUserVipFilter] = useState<string>("all");
   const [updatingRole, setUpdatingRole] = useState(false);
 
   // Helper function to format date as Gregorian (Miladi)
@@ -418,12 +419,13 @@ export default function AdminDashboard() {
 
   const filteredUsers = users.filter((u: User) => {
     const matchesRole = userRoleFilter === "all" || u.role === userRoleFilter;
+    const matchesVip = userVipFilter === "all" || (u.vipStatus || "none") === userVipFilter;
     const searchStr = userSearchQuery.toLowerCase();
     const matchesSearch = !userSearchQuery || 
       u.email.toLowerCase().includes(searchStr) || 
       (u.fullName && u.fullName.toLowerCase().includes(searchStr)) ||
       (u.phone && u.phone.includes(searchStr));
-    return matchesRole && matchesSearch;
+    return matchesRole && matchesVip && matchesSearch;
   });
 
   const filteredSheep = sheep.filter((s: Sheep) => {
@@ -979,7 +981,7 @@ export default function AdminDashboard() {
                     />
                   </div>
                   <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
-                    <SelectTrigger className="w-[150px]">
+                    <SelectTrigger className="w-[130px]">
                       <SelectValue placeholder="الرتبة" />
                     </SelectTrigger>
                     <SelectContent>
@@ -987,6 +989,18 @@ export default function AdminDashboard() {
                       <SelectItem value="admin">مدير</SelectItem>
                       <SelectItem value="seller">بائع</SelectItem>
                       <SelectItem value="buyer">مشتري</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={userVipFilter} onValueChange={setUserVipFilter}>
+                    <SelectTrigger className="w-[130px]">
+                      <SelectValue placeholder="حالة VIP" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">كل الحالات</SelectItem>
+                      <SelectItem value="none">عادي</SelectItem>
+                      <SelectItem value="silver">فضية</SelectItem>
+                      <SelectItem value="gold">ذهبية</SelectItem>
+                      <SelectItem value="platinum">بلاتينيوم</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
