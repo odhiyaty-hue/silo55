@@ -101,6 +101,9 @@ export default function AdminDashboard() {
   const [orderSearchQuery, setOrderSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
   const [sheepStatusFilter, setSheepStatusFilter] = useState<string>("all");
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
+  const [updatingRole, setUpdatingRole] = useState(false);
 
   // Helper function to format date as Gregorian (Miladi)
   const formatGregorianDate = (date: any) => {
@@ -110,6 +113,7 @@ export default function AdminDashboard() {
     const day = String(d.getDate()).padStart(2, '0');
     return `${day}/${month}/${year}`;
   };
+
 
   useEffect(() => {
     fetchAllData();
@@ -412,6 +416,16 @@ export default function AdminDashboard() {
   };
 
 
+  const filteredUsers = users.filter((u: User) => {
+    const matchesRole = userRoleFilter === "all" || u.role === userRoleFilter;
+    const searchStr = userSearchQuery.toLowerCase();
+    const matchesSearch = !userSearchQuery || 
+      u.email.toLowerCase().includes(searchStr) || 
+      (u.fullName && u.fullName.toLowerCase().includes(searchStr)) ||
+      (u.phone && u.phone.includes(searchStr));
+    return matchesRole && matchesSearch;
+  });
+
   const filteredSheep = sheep.filter((s: Sheep) => {
     if (sheepStatusFilter === "all") return true;
     if (sheepStatusFilter === "approved") return s.status === "approved" && !s.isSold;
@@ -542,6 +556,30 @@ export default function AdminDashboard() {
         return <Badge className="bg-green-500/10 text-green-700 dark:text-green-400">مشتري</Badge>;
       default:
         return <Badge>{role}</Badge>;
+    }
+  };
+
+  const handleRoleUpdate = async (userUid: string, newRole: string) => {
+    setUpdatingRole(true);
+    try {
+      await updateDoc(doc(db, "users", userUid), {
+        role: newRole,
+        updatedAt: Date.now(),
+      });
+      toast({
+        title: "تم تحديث الرتبة",
+        description: `تم تغيير رتبة المستخدم بنجاح إلى ${getRoleLabel(newRole)}`,
+      });
+      fetchUsers();
+    } catch (error) {
+      console.error("Error updating role:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تحديث الرتبة",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingRole(false);
     }
   };
 
@@ -755,14 +793,8 @@ export default function AdminDashboard() {
                 <TabsTrigger value="all" className="whitespace-nowrap px-4 py-2" data-testid="tab-all">
                   جميع الأغنام
                 </TabsTrigger>
-                <TabsTrigger value="sellers" className="whitespace-nowrap px-4 py-2" data-testid="tab-sellers">
-                  البائعون ({users.filter((u: User) => u.role === "seller").length})
-                </TabsTrigger>
                 <TabsTrigger value="users" className="whitespace-nowrap px-4 py-2" data-testid="tab-users">
-                  المستخدمون
-                </TabsTrigger>
-                <TabsTrigger value="vip" className="whitespace-nowrap px-4 py-2" data-testid="tab-vip">
-                  إدارة VIP ({users.filter((u: User) => u.vipStatus && u.vipStatus !== "none").length})
+                  المستخدمون ({users.length})
                 </TabsTrigger>
                 <TabsTrigger value="orders" className="whitespace-nowrap px-4 py-2" data-testid="tab-orders">
                   الطلبات
@@ -780,77 +812,7 @@ export default function AdminDashboard() {
             <AdminPaymentTab />
           </TabsContent>
 
-          {/* VIP Management Tab */}
-          <TabsContent value="vip">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-amber-500" />
-                  إدارة ميزة VIP
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <p className="text-center text-muted-foreground">جاري التحميل...</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>البريد الإلكتروني</TableHead>
-                        <TableHead>الاسم</TableHead>
-                        <TableHead>نوع الحساب</TableHead>
-                        <TableHead>حالة VIP</TableHead>
-                        <TableHead>تاريخ البداية</TableHead>
-                        <TableHead>تاريخ الانتهاء</TableHead>
-                        <TableHead>الإجراءات</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {users.map((user: User) => (
-                        <TableRow key={user.uid}>
-                          <TableCell className="font-medium">{user.email}</TableCell>
-                          <TableCell>{user.fullName || "-"}</TableCell>
-                          <TableCell>{getRoleBadge(user.role)}</TableCell>
-                          <TableCell>
-                            {user.vipStatus === "none" || !user.vipStatus ? (
-                              <Badge variant="outline">عادي</Badge>
-                            ) : (
-                              <Badge className="bg-amber-500/10 text-amber-700">
-                                <Crown className="h-3 w-3 ml-1" />
-                                {user.vipStatus && VIP_PACKAGES[user.vipStatus as keyof typeof VIP_PACKAGES] 
-                                  ? VIP_PACKAGES[user.vipStatus as keyof typeof VIP_PACKAGES].nameAr 
-                                  : "VIP"}
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {user.vipUpgradedAt ? formatGregorianDate(user.vipUpgradedAt) : "-"}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {user.vipExpiresAt ? formatGregorianDate(user.vipExpiresAt) : "-"}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedUserVIP(user);
-                                setVipStatus(user.vipStatus || "none");
-                                setVipExpiryDate(user.vipExpiresAt ? new Date(user.vipExpiresAt).toISOString().split("T")[0] : "");
-                              }}
-                              data-testid={`button-edit-vip-${user.uid}`}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {/* VIP Management Tab (Removed - Integrated into Users Detail) */}
 
           {/* Pending Reviews Tab */}
           <TabsContent value="pending">
@@ -1000,81 +962,69 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          {/* Sellers Tab */}
-          <TabsContent value="sellers">
-            <Card>
-              <CardHeader>
-                <CardTitle>البائعون - البيانات الشخصية ({users.filter(u => u.role === "seller").length})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {users.filter((u: User) => u.role === "seller").length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    لا توجد بيانات بائعين
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-right">البريد الإلكتروني</TableHead>
-                          <TableHead className="text-right">الاسم الكامل</TableHead>
-                          <TableHead className="text-right">رقم الهاتف</TableHead>
-                          <TableHead className="text-right">المدينة</TableHead>
-                          <TableHead className="text-right">البلدية</TableHead>
-                          <TableHead className="text-right">العنوان</TableHead>
-                          <TableHead className="text-right">تاريخ التسجيل</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {users.filter((u: User) => u.role === "seller").map((u: User) => (
-                          <TableRow key={u.uid}>
-                            <TableCell className="font-medium">{u.email}</TableCell>
-                            <TableCell>{u.fullName || "-"}</TableCell>
-                            <TableCell>{u.phone || "-"}</TableCell>
-                            <TableCell>{u.city || "-"}</TableCell>
-                            <TableCell className="text-sm">{u.municipality || "-"}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-                              {u.address || "-"}
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                              {formatGregorianDate(u.createdAt)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           {/* Users Tab */}
           <TabsContent value="users">
             <Card>
-              <CardHeader>
-                <CardTitle>المستخدمون ({users.length})</CardTitle>
+              <CardHeader className="flex flex-col md:flex-row justify-between md:items-center gap-4 space-y-0">
+                <CardTitle>المستخدمون ({filteredUsers.length})</CardTitle>
+                <div className="flex gap-2 flex-wrap items-center">
+                  <div className="relative w-full md:w-64">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="البحث (بالبريد أو الهاتف)"
+                      className="pr-10"
+                      value={userSearchQuery}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="الرتبة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">كل الرتب</SelectItem>
+                      <SelectItem value="admin">مدير</SelectItem>
+                      <SelectItem value="seller">بائع</SelectItem>
+                      <SelectItem value="buyer">مشتري</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>البريد الإلكتروني</TableHead>
+                      <TableHead>الاسم</TableHead>
                       <TableHead>الدور</TableHead>
-                      <TableHead>رقم الجوال</TableHead>
+                      <TableHead>المدينة</TableHead>
                       <TableHead>تاريخ التسجيل</TableHead>
+                      <TableHead>الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((u: User) => (
+                    {filteredUsers.map((u: User) => (
                       <TableRow key={u.uid}>
-                        <TableCell>{u.email}</TableCell>
+                        <TableCell className="font-medium">{u.email}</TableCell>
+                        <TableCell>{u.fullName || "-"}</TableCell>
                         <TableCell>{getRoleBadge(u.role)}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {u.phone || "-"}
-                        </TableCell>
+                        <TableCell>{u.city || "-"}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {formatGregorianDate(u.createdAt)}
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUserVIP(u);
+                              setVipStatus(u.vipStatus || "none");
+                              setVipExpiryDate(u.vipExpiresAt ? new Date(u.vipExpiresAt).toISOString().split("T")[0] : "");
+                            }}
+                          >
+                            عرض التفاصيل
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1221,75 +1171,112 @@ export default function AdminDashboard() {
         </Tabs>
       </div>
 
-      {/* VIP Management Dialog */}
+      {/* User Management Dialog */}
       {selectedUserVIP && (
         <Dialog open={!!selectedUserVIP} onOpenChange={() => setSelectedUserVIP(null)}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>إدارة VIP للمستخدم</DialogTitle>
+              <DialogTitle>تفاصيل وإدارة المستخدم</DialogTitle>
               <DialogDescription>
                 {selectedUserVIP.email}
               </DialogDescription>
             </DialogHeader>
             
-            <div className="space-y-4">
-              <div>
-                <Label className="block mb-2 font-semibold">حالة VIP</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(["none", "silver", "gold", "platinum"] as const).map(status => (
-                    <Button
-                      key={status}
-                      variant={vipStatus === status ? "default" : "outline"}
-                      onClick={() => setVipStatus(status)}
-                      className="text-xs"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* User Details Section */}
+              <div className="space-y-4">
+                <h3 className="font-bold border-b pb-2">تفاصيل التواصل والعنوان</h3>
+                <div className="space-y-2 text-sm text-right">
+                  <p><span className="text-muted-foreground">الاسم الكامل:</span> {selectedUserVIP.fullName || "-"}</p>
+                  <p><span className="text-muted-foreground">رقم الهاتف:</span> {selectedUserVIP.phone || "-"}</p>
+                  <p><span className="text-muted-foreground">المدينة:</span> {selectedUserVIP.city || "-"}</p>
+                  <p><span className="text-muted-foreground">البلدية:</span> {selectedUserVIP.municipality || "-"}</p>
+                  <p><span className="text-muted-foreground">العنوان الكامل:</span> {selectedUserVIP.address || "-"}</p>
+                  <p><span className="text-muted-foreground">تاريخ الانضمام:</span> {formatGregorianDate(selectedUserVIP.createdAt)}</p>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <Label className="block mb-2 font-semibold">تغيير رتبة المستخدم</Label>
+                  <div className="flex gap-2">
+                    <Select 
+                      defaultValue={selectedUserVIP.role} 
+                      onValueChange={(val) => handleRoleUpdate(selectedUserVIP.uid, val)}
+                      disabled={updatingRole}
                     >
-                      {status === "none" 
-                        ? "عادي" 
-                        : VIP_PACKAGES[status as keyof typeof VIP_PACKAGES]?.nameAr}
-                    </Button>
-                  ))}
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="اختر الرتبة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="buyer">مشتري</SelectItem>
+                        <SelectItem value="seller">بائع</SelectItem>
+                        <SelectItem value="admin">مدير</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {updatingRole && <Loader2 className="h-4 w-4 animate-spin mt-2" />}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    * سيتم منح المستخدم صلاحيات الرتبة الجديدة فور الحفظ.
+                  </p>
                 </div>
               </div>
 
-              {vipStatus !== "none" && (
+              {/* VIP Management Section */}
+              <div className="space-y-4 bg-muted/30 p-4 rounded-lg border">
+                <h3 className="font-bold flex items-center gap-2 border-b pb-2">
+                  <Crown className="h-4 w-4 text-amber-500" />
+                  إدارة حالة VIP
+                </h3>
+                
                 <div>
-                  <Label htmlFor="vip-expiry" className="block mb-2 font-semibold">
-                    تاريخ انتهاء الاشتراك
-                  </Label>
-                  <Input
-                    id="vip-expiry"
-                    type="date"
-                    value={vipExpiryDate}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVipExpiryDate(e.target.value)}
-                    className="w-full"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    اتركه فارغاً للاشتراك المدى الطويل
-                  </p>
+                  <Label className="block mb-2 text-sm">باقة VIP الحالية</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["none", "silver", "gold", "platinum"] as const).map(status => (
+                      <Button
+                        key={status}
+                        variant={vipStatus === status ? "default" : "outline"}
+                        onClick={() => setVipStatus(status)}
+                        className="text-[10px] h-8"
+                      >
+                        {status === "none" 
+                          ? "عادي" 
+                          : VIP_PACKAGES[status as keyof typeof VIP_PACKAGES]?.nameAr}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              )}
 
-              {selectedUserVIP.vipUpgradedAt && (
-                <div className="bg-muted p-3 rounded-lg text-sm">
-                  <p className="text-muted-foreground">تاريخ الترقية:</p>
-                  <p className="font-semibold">{formatGregorianDate(selectedUserVIP.vipUpgradedAt)}</p>
-                </div>
-              )}
+                {vipStatus !== "none" && (
+                  <div>
+                    <Label htmlFor="vip-expiry" className="block mb-2 text-sm">
+                      تاريخ انتهاء الاشتراك
+                    </Label>
+                    <Input
+                      id="vip-expiry"
+                      type="date"
+                      value={vipExpiryDate}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVipExpiryDate(e.target.value)}
+                      className="w-full h-9"
+                    />
+                  </div>
+                )}
+
+                <Button
+                  onClick={handleVIPUpdate}
+                  disabled={updatingVIP}
+                  className="w-full mt-4"
+                >
+                  {updatingVIP ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <CheckCircle className="ml-2 h-4 w-4" />}
+                  تحديث حالة VIP
+                </Button>
+              </div>
             </div>
 
-            <DialogFooter className="gap-2">
+            <DialogFooter className="border-t pt-4">
               <Button
                 variant="outline"
                 onClick={() => setSelectedUserVIP(null)}
               >
-                إلغاء
-              </Button>
-              <Button
-                onClick={handleVIPUpdate}
-                disabled={updatingVIP}
-              >
-                {updatingVIP ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <CheckCircle className="ml-2 h-4 w-4" />}
-                تحديث
+                إغلاق
               </Button>
             </DialogFooter>
           </DialogContent>
