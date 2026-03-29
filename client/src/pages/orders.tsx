@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, ChangeEvent } from "react";
 import { collection, query, where, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,7 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { ShoppingBag, Calendar, DollarSign, Truck } from "lucide-react";
+import { ShoppingBag, Calendar, DollarSign, Truck, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
@@ -41,6 +42,7 @@ export default function OrdersPage() {
   const [, setLocation] = useLocation();
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!user) {
@@ -194,13 +196,29 @@ export default function OrdersPage() {
     }
   };
 
+  const filteredOrders = orders.filter((order: OrderItem) =>
+    order.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-12">
-        <div className="flex items-center gap-3 mb-8">
-          <ShoppingBag className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">طلباتي</h1>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-3">
+            <ShoppingBag className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold">طلباتي</h1>
+          </div>
+          <div className="relative w-full md:w-80">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="البحث برقم الطلب..."
+              className="pr-10 text-right"
+              dir="rtl"
+              value={searchQuery}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
 
         {loading ? (
@@ -219,7 +237,14 @@ export default function OrdersPage() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => (
+            {filteredOrders.length === 0 && searchQuery && (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <p className="text-lg text-muted-foreground">لا توجد طلبات تطابق بحثك</p>
+                </CardContent>
+              </Card>
+            )}
+            {filteredOrders.map((order) => (
               <Card key={order.id} className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
