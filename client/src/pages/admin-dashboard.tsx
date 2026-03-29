@@ -1,5 +1,5 @@
 import Header from "@/components/Header";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { collection, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,6 +35,7 @@ import {
   CreditCard,
   Upload,
   Printer,
+  Search,
 } from "lucide-react";
 import {
   Dialog,
@@ -88,6 +89,7 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [orderSearchQuery, setOrderSearchQuery] = useState("");
 
   // Helper function to format date as Gregorian (Miladi)
   const formatGregorianDate = (date: any) => {
@@ -350,7 +352,14 @@ export default function AdminDashboard() {
     if (cityFilter !== "all") {
       cityMatch = (o.buyerCity || "غير محدد") === cityFilter;
     }
-    return statusMatch && cityMatch;
+
+    const searchLower = orderSearchQuery.toLowerCase();
+    const searchMatch =
+      o.id.toLowerCase().includes(searchLower) ||
+      (o.buyerEmail || "").toLowerCase().includes(searchLower) ||
+      (o.sellerEmail || "").toLowerCase().includes(searchLower);
+
+    return statusMatch && cityMatch && searchMatch;
   });
 
   const handleImportedImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -909,6 +918,15 @@ export default function AdminDashboard() {
                       حذف المحدد ({selectedOrderIds.length})
                     </Button>
                   )}
+                  <div className="relative w-full md:w-64">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="البحث (رقم، بريد...)"
+                      className="pr-10"
+                      value={orderSearchQuery}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrderSearchQuery(e.target.value)}
+                    />
+                  </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-[150px]">
                       <SelectValue placeholder="الحالة" />
