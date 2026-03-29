@@ -5,7 +5,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Sheep, Order, User, VIPStatus, VIP_PACKAGES, CIBReceipt } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,13 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import AdminPaymentTab from "@/components/admin-payment-tab";
 import PrintInvoice from "@/components/PrintInvoice";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip as RechartsTooltip } from "recharts";
+import { 
+  ChartContainer, 
+  ChartTooltip, 
+  ChartTooltipContent, 
+  ChartConfig,
+} from "@/components/ui/chart";
 import {
   Select,
   SelectContent,
@@ -36,6 +43,8 @@ import {
   Upload,
   Printer,
   Search,
+  PieChart as ChartPie,
+  TrendingUp,
 } from "lucide-react";
 import {
   Dialog,
@@ -342,6 +351,47 @@ export default function AdminDashboard() {
 
   const uniqueOrderCities = Array.from(new Set(orders.map(o => o.buyerCity || "غير محدد").filter(Boolean)));
   
+  const sheepStatsData = [
+    { status: "approved", count: sheep.filter((s: Sheep) => s.status === "approved" && !s.isSold).length, fill: "var(--color-approved)" },
+    { status: "pending", count: sheep.filter((s: Sheep) => s.status === "pending").length, fill: "var(--color-pending)" },
+    { status: "rejected", count: sheep.filter((s: Sheep) => s.status === "rejected").length, fill: "var(--color-rejected)" },
+    { status: "sold", count: sheep.filter((s: Sheep) => s.isSold).length, fill: "var(--color-sold)" },
+  ];
+
+  const orderStatsData = [
+    { status: "confirmed", count: orders.filter((o: Order) => o.status === "confirmed").length, fill: "var(--color-confirmed)" },
+    { status: "pending", count: orders.filter((o: Order) => !o.status || o.status === "pending").length, fill: "var(--color-pending)" },
+    { status: "rejected", count: orders.filter((o: Order) => o.status === "rejected").length, fill: "var(--color-rejected)" },
+  ];
+
+  const userStatsData = [
+    { role: "seller", count: users.filter((u: User) => u.role === "seller").length, fill: "var(--color-seller)" },
+    { role: "buyer", count: users.filter((u: User) => u.role === "buyer").length, fill: "var(--color-buyer)" },
+    { role: "admin", count: users.filter((u: User) => u.role === "admin").length, fill: "var(--color-admin)" },
+  ];
+
+  const sheepChartConfig = {
+    count: { label: "العدد" },
+    approved: { label: "مقبول", color: "#22c55e" },
+    pending: { label: "قيد المراجعة", color: "#eab308" },
+    rejected: { label: "مرفوض", color: "#ef4444" },
+    sold: { label: "مباع", color: "#64748b" },
+  } satisfies ChartConfig;
+
+  const orderChartConfig = {
+    count: { label: "العدد" },
+    confirmed: { label: "مؤكد", color: "#22c55e" },
+    pending: { label: "قيد المراجعة", color: "#eab308" },
+    rejected: { label: "مرفوض", color: "#ef4444" },
+  } satisfies ChartConfig;
+
+  const userChartConfig = {
+    count: { label: "العدد" },
+    seller: { label: "بائع", color: "#3b82f6" },
+    buyer: { label: "مشتري", color: "#16a34a" },
+    admin: { label: "مدير", color: "#9333ea" },
+  } satisfies ChartConfig;
+
   const filteredOrders = orders.filter(o => {
     let statusMatch = true;
     if (statusFilter === "pending") statusMatch = (!o.status || o.status === "pending");
@@ -524,59 +574,132 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center gap-3 md:gap-4">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Package className="h-6 w-6 md:h-8 md:w-8 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xl md:text-2xl font-bold">{stats.totalSheep}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">إجمالي الأغنام</p>
-                </div>
-              </div>
+        {/* Detailed Stats Charts */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Sheep Stats Chart */}
+          <Card className="flex flex-col">
+            <CardHeader className="items-center pb-0">
+              <CardTitle>الأضاحي</CardTitle>
+              <CardDescription>توزيع حالة الأضاحي في المنصة</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 pb-0">
+              <ChartContainer
+                config={sheepChartConfig}
+                className="mx-auto aspect-square max-h-64"
+              >
+                <PieChart>
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent hideLabel />}
+                  />
+                  <Pie
+                    data={sheepStatsData}
+                    dataKey="count"
+                    nameKey="status"
+                    innerRadius={60}
+                    strokeWidth={5}
+                  >
+                    {sheepStatsData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
             </CardContent>
+            <div className="flex flex-wrap gap-2 justify-center pb-4 px-4">
+              {sheepStatsData.map((s) => (
+                <div key={s.status} className="flex items-center gap-1">
+                  <div className="h-3 w-3 rounded-full" style={{ background: (sheepChartConfig[s.status as keyof typeof sheepChartConfig] as any)?.color }} />
+                  <span className="text-xs text-muted-foreground">
+                    {(sheepChartConfig[s.status as keyof typeof sheepChartConfig] as any)?.label}: {s.count}
+                  </span>
+                </div>
+              ))}
+            </div>
           </Card>
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center gap-3 md:gap-4">
-                <div className="p-2 bg-yellow-500/10 rounded-lg">
-                  <Clock className="h-6 w-6 md:h-8 md:w-8 text-yellow-500" />
-                </div>
-                <div>
-                  <p className="text-xl md:text-2xl font-bold">{stats.pendingSheep}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">قيد المراجعة</p>
-                </div>
-              </div>
+
+          {/* Orders Stats Chart */}
+          <Card className="flex flex-col">
+            <CardHeader className="items-center pb-0">
+              <CardTitle>الطلبات</CardTitle>
+              <CardDescription>توزيع حالة الطلبات الحالية</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 pb-0">
+              <ChartContainer
+                config={orderChartConfig}
+                className="mx-auto aspect-square max-h-64"
+              >
+                <PieChart>
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent hideLabel />}
+                  />
+                  <Pie
+                    data={orderStatsData}
+                    dataKey="count"
+                    nameKey="status"
+                    innerRadius={60}
+                    strokeWidth={5}
+                  >
+                    {orderStatsData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
             </CardContent>
+            <div className="flex flex-wrap gap-2 justify-center pb-4 px-4">
+              {orderStatsData.map((o) => (
+                <div key={o.status} className="flex items-center gap-1">
+                  <div className="h-3 w-3 rounded-full" style={{ background: (orderChartConfig[o.status as keyof typeof orderChartConfig] as any)?.color }} />
+                  <span className="text-xs text-muted-foreground">
+                    {(orderChartConfig[o.status as keyof typeof orderChartConfig] as any)?.label}: {o.count}
+                  </span>
+                </div>
+              ))}
+            </div>
           </Card>
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center gap-3 md:gap-4">
-                <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <ShoppingBag className="h-6 w-6 md:h-8 md:w-8 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-xl md:text-2xl font-bold">{stats.totalOrders}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">الطلبات</p>
-                </div>
-              </div>
+
+          {/* Users Distribution Chart */}
+          <Card className="flex flex-col">
+            <CardHeader className="items-center pb-0">
+              <CardTitle>المستخدمون</CardTitle>
+              <CardDescription>توزيع أدوار المستخدمين</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 pb-0">
+              <ChartContainer
+                config={userChartConfig}
+                className="mx-auto aspect-square max-h-64"
+              >
+                <PieChart>
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent hideLabel />}
+                  />
+                  <Pie
+                    data={userStatsData}
+                    dataKey="count"
+                    nameKey="role"
+                    innerRadius={60}
+                    strokeWidth={5}
+                  >
+                    {userStatsData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
             </CardContent>
-          </Card>
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center gap-3 md:gap-4">
-                <div className="p-2 bg-green-500/10 rounded-lg">
-                  <Users className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
+            <div className="flex flex-wrap gap-2 justify-center pb-4 px-4">
+              {userStatsData.map((u) => (
+                <div key={u.role} className="flex items-center gap-1">
+                  <div className="h-3 w-3 rounded-full" style={{ background: (userChartConfig[u.role as keyof typeof userChartConfig] as any)?.color }} />
+                  <span className="text-xs text-muted-foreground">
+                    {(userChartConfig[u.role as keyof typeof userChartConfig] as any)?.label}: {u.count}
+                  </span>
                 </div>
-                <div>
-                  <p className="text-xl md:text-2xl font-bold">{stats.totalUsers}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">المستخدمون</p>
-                </div>
-              </div>
-            </CardContent>
+              ))}
+            </div>
           </Card>
         </div>
 
