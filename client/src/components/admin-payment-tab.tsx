@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { collection, getDocs, updateDoc, doc, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { CIBReceipt, Payment, VIP_PACKAGES } from "@shared/schema";
+import { CIBReceipt, Payment, VIP_PACKAGES, Notification } from "@shared/schema";
+import { addNotification } from "@/lib/activity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -97,6 +98,18 @@ export default function AdminPaymentTab() {
         });
       }
 
+      // إشعار للمستخدم
+      await addNotification({
+        userId: selectedReceipt.userId,
+        title: "تم تأكيد عملية الدفع ✅",
+        message: selectedReceipt.vipUpgrade 
+          ? `تم التحقق من وصل الدفع الخاص بك وتفعيل باقة VIP بنجاح.` 
+          : `تم التحقق من وصل الدفع الخاص بطلب الشراء الخاص بك.`,
+        type: selectedReceipt.vipUpgrade ? "vip" : "order",
+        link: selectedReceipt.vipUpgrade ? "/vip-packages" : "/orders",
+        isRead: false
+      });
+
       toast({
         title: "تم التحقق من الوصل",
         description: "تم تفعيل الترقية VIP بنجاح",
@@ -126,6 +139,16 @@ export default function AdminPaymentTab() {
         verifiedBy: "admin",
         verifiedAt: Date.now(),
         updatedAt: Date.now(),
+      });
+
+      // إشعار للمستخدم بالرفض
+      await addNotification({
+        userId: selectedReceipt.userId,
+        title: "تم رفض وصل الدفع ❌",
+        message: `نعتذر، لم يتم قبول وصل الدفع الخاص بك. السبب: ${rejectionReason || "غير محدد"}`,
+        type: "system",
+        link: "/support",
+        isRead: false
       });
 
       toast({

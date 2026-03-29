@@ -7,7 +7,8 @@ import { db } from "@/lib/firebase";
 import { uploadMultipleImagesToImgBB } from "@/lib/imgbb";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
-import { Sheep, insertSheepSchema, InsertSheep, algeriaCities } from "@shared/schema";
+import { Sheep, insertSheepSchema, InsertSheep, algeriaCities, User } from "@shared/schema";
+import { addNotification } from "@/lib/activity";
 import { getMunicipalitiesForWilaya, getMunicipalitiesForWilayaSync } from "@shared/algeriaMunicipalities";
 import SheepCard from "@/components/SheepCard";
 import { Button } from "@/components/ui/button";
@@ -221,6 +222,25 @@ export default function SellerDashboard() {
       };
 
       await addDoc(collection(db, "sheep"), sheepData);
+
+      // إشعار للمشرفين
+      try {
+        const adminsQuery = query(collection(db, "users"), where("role", "==", "admin"));
+        const adminsSnapshot = await getDocs(adminsQuery);
+        const adminPromises = adminsSnapshot.docs.map(adminDoc => 
+          addNotification({
+            userId: adminDoc.id,
+            title: "أضحية جديدة للمراجعة ✨",
+            message: `قام البائع ${user.email} بإضافة أضحية جديدة بمبلغ ${data.price.toLocaleString()} د.ج`,
+            type: "sheep",
+            link: "/admin",
+            isRead: false
+          })
+        );
+        await Promise.all(adminPromises);
+      } catch (err) {
+        console.error("Error notifying admins:", err);
+      }
 
       toast({
         title: "تم إضافة الخروف بنجاح",

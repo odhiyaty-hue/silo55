@@ -5,10 +5,11 @@ import { useRoute } from "wouter";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { doc, getDoc, collection, addDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, updateDoc, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
-import { Sheep, InsertOrder, algeriaCities } from "@shared/schema";
+import { Sheep, InsertOrder, algeriaCities, Notification } from "@shared/schema";
+import { addNotification } from "@/lib/activity";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -205,6 +206,35 @@ export default function SheepDetail() {
         await updateDoc(doc(db, "sheep", sheep.id), { isSold: true });
       } catch (updateError) {
         console.warn("Sheep status update failed (likely missing permissions), but order was created:", updateError);
+      }
+
+      // إشعار للبائع
+      await addNotification({
+        userId: sheep.sellerId,
+        title: "طلب شراء جديد 📢",
+        message: `لقد تلقيت طلب شراء جديد لأضحيتك بمبلغ ${sheep.price.toLocaleString()} د.ج. بانتظار مراجعة الإدارة.`,
+        type: "order",
+        link: "/seller",
+        isRead: false
+      });
+
+      // إشعار للمشرفين
+      try {
+        const adminsQuery = query(collection(db, "users"), where("role", "==", "admin"));
+        const adminsSnapshot = await getDocs(adminsQuery);
+        const adminPromises = adminsSnapshot.docs.map(adminDoc => 
+          addNotification({
+            userId: adminDoc.id,
+            title: "طلب شراء جديد للمراجعة 🛒",
+            message: `قام ${formData.fullName} بطلب شراء أضحية بمبلغ ${sheep.price.toLocaleString()} د.ج`,
+            type: "order",
+            link: "/admin",
+            isRead: false
+          })
+        );
+        await Promise.all(adminPromises);
+      } catch (err) {
+        console.error("Error notifying admins about new order:", err);
       }
 
       localStorage.setItem("pendingOrderId", orderRef.id);

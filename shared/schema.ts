@@ -326,3 +326,26 @@ export const algeriaCities = [
   "ورقلة",
   "وهران",
 ] as const;
+
+// Notification schema (Firestore)
+export interface Notification {
+  id: string;
+  userId: string; // recipient
+  title: string;
+  message: string;
+  type: "order" | "sheep" | "vip" | "system";
+  isRead: boolean;
+  link?: string; // e.g. /orders or /admin
+  createdAt: number;
+}
+
+// Activity Log schema (Firestore)
+export interface ActivityLog {
+  id: string;
+  userId: string; // actor
+  userEmail: string;
+  action: string; // e.g. "APPROVE_SHEEP", "DELETE_ORDER"
+  details: string; // Arabic description of what happened
+  targetId?: string; // id of sheep/order affected
+  createdAt: number;
+}

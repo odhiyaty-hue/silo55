@@ -1,9 +1,11 @@
 import Header from "@/components/Header";
-import React, { useState, useEffect } from "react";
+import * as React from "react";
+import { useState, useEffect } from "react";
 import { collection, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
-import { Sheep, Order, User, VIPStatus, VIP_PACKAGES, CIBReceipt } from "@shared/schema";
+import { Sheep, Order, User, VIPStatus, VIP_PACKAGES, CIBReceipt, Notification, ActivityLog } from "@shared/schema";
+import { addNotification, addActivityLog } from "@/lib/activity";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +50,7 @@ import {
   DollarSign,
   BarChart3,
   ArrowUpRight,
+  History,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -98,6 +101,7 @@ export default function AdminDashboard() {
   const [vipExpiryDate, setVipExpiryDate] = useState("");
   const [vipStatus, setVipStatus] = useState<VIPStatus>("none");
   const [updatingVIP, setUpdatingVIP] = useState(false);
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [orderReceipt, setOrderReceipt] = useState<CIBReceipt | null>(null);
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -123,7 +127,22 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchAllData();
+    fetchLogs();
   }, []);
+
+  const fetchLogs = async () => {
+    try {
+      const q = query(collection(db, "activityLogs"), orderBy("createdAt", "desc"), limit(100));
+      const snapshot = await getDocs(q);
+      const logsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as ActivityLog[];
+      setLogs(logsData);
+    } catch (error) {
+      console.error("Error fetching logs:", error);
+    }
+  };
 
   useEffect(() => {
     if (selectedOrder) {
@@ -193,8 +212,9 @@ export default function AdminDashboard() {
   const handleReview = async (sheepId: string, approved: boolean, rejectionReason?: string) => {
     setReviewing(true);
     try {
+      const status = approved ? "approved" : "rejected";
       const updateData: any = {
-        status: approved ? "approved" : "rejected",
+        status,
         updatedAt: Date.now(),
       };
       
@@ -203,6 +223,30 @@ export default function AdminDashboard() {
       }
       
       await updateDoc(doc(db, "sheep", sheepId), updateData);
+
+      const s = sheep.find(item => item.id === sheepId);
+      if (s) {
+        // إرسال إشعار للبائع
+        await addNotification({
+          userId: s.sellerId,
+          title: approved ? "تم قبول عرضك ✅" : "تم رفض عرضك ❌",
+          message: approved 
+            ? `تهانينا! تمت الموافقة على عرض الأضحية الخاص بك وهو الآن متاح للجميع.` 
+            : `للأسف تم رفض عرضك لسبب: ${rejectionReason || "غير محدد"}`,
+          type: "sheep",
+          link: "/seller",
+          isRead: false
+        });
+
+        // سجل العملية للمدير
+        await addActivityLog({
+          userId: user?.uid || "admin",
+          userEmail: user?.email || "admin",
+          action: approved ? "APPROVE_SHEEP" : "REJECT_SHEEP",
+          details: `${approved ? "موافقة" : "رفض"} على الأضحية رقم ${sheepId} للبائع ${s.sellerEmail}`,
+          targetId: sheepId
+        });
+      }
 
       toast({
         title: approved ? "تم قبول الخروف" : "تم رفض الخروف",
@@ -250,8 +294,9 @@ export default function AdminDashboard() {
   const handleOrderReview = async (orderId: string, approved: boolean) => {
     setReviewing(true);
     try {
+      const status = approved ? "confirmed" : "rejected";
       await updateDoc(doc(db, "orders", orderId), {
-        status: approved ? "confirmed" : "rejected",
+        status,
         updatedAt: Date.now(),
       });
 
@@ -263,6 +308,42 @@ export default function AdminDashboard() {
             updatedAt: Date.now(),
           });
         }
+      }
+
+      const o = orders.find(item => item.id === orderId);
+      if (o) {
+        // إشعار للمشتري
+        await addNotification({
+          userId: o.buyerId,
+          title: approved ? "تم تأكيد طلبك 🎉" : "تم رفض طلبك ⚠️",
+          message: approved 
+            ? `تم تأكيد طلب الأضحية الخاص بك بنجاح. يمكنك المتابعة الآن.` 
+            : `نعتذر منك، تم رفض طلب الأضحية الخاص بك من قبل الإدارة.`,
+          type: "order",
+          link: "/orders",
+          isRead: false
+        });
+
+        // إشعار للبائع (إذا تم التأكيد)
+        if (approved) {
+          await addNotification({
+            userId: o.sellerId,
+            title: "طلب مؤكد جديد 🛒",
+            message: `تم تأكيد طلب شراء لأحد أضاحيك بمبلغ ${o.totalPrice.toLocaleString()} د.ج`,
+            type: "order",
+            link: "/seller",
+            isRead: false
+          });
+        }
+
+        // سجل العملية للمدير
+        await addActivityLog({
+          userId: user?.uid || "admin",
+          userEmail: user?.email || "admin",
+          action: approved ? "CONFIRM_ORDER" : "REJECT_ORDER",
+          details: `${approved ? "تأكيد" : "رفض"} الطلب رقم ${orderId} للمشتري ${o.buyerEmail}`,
+          targetId: orderId
+        });
       }
 
       toast({
@@ -295,9 +376,20 @@ export default function AdminDashboard() {
         await deleteDoc(doc(db, "orders", id));
         deletedCount++;
       }
+
+      // سجل العملية للمدير
+      await addActivityLog({
+        userId: user?.uid || "admin",
+        userEmail: user?.email || "admin",
+        action: "DELETE_ORDERS",
+        details: `قام المسؤول بحذف عدد ${deletedCount} طلب شراء من النظام`,
+        targetId: selectedOrderIds.join(", ").slice(0, 50) + (selectedOrderIds.length > 5 ? "..." : "")
+      });
+
       toast({ title: "تم", description: `تم حذف ${deletedCount} طلب بنجاح.` });
       setSelectedOrderIds([]);
       fetchOrders();
+      fetchLogs(); // تحديث سجلات النشاط في الواجهة
     } catch (e: any) {
       toast({ title: "خطأ", description: e.message, variant: "destructive" });
     } finally {
@@ -334,6 +426,15 @@ export default function AdminDashboard() {
     setReviewing(true);
     try {
       await deleteDoc(doc(db, "sheep", sheepId));
+
+      // سجل العملية
+      await addActivityLog({
+        userId: user?.uid || "admin",
+        userEmail: user?.email || "admin",
+        action: "DELETE_SHEEP",
+        details: `قام المسؤول بحذف الأضحية رقم ${sheepId}`,
+        targetId: sheepId
+      });
 
       toast({
         title: "تم حذف العرض",
@@ -581,6 +682,16 @@ export default function AdminDashboard() {
         role: newRole,
         updatedAt: Date.now(),
       });
+
+      // سجل العملية للمدير
+      await addActivityLog({
+        userId: user?.uid || "admin",
+        userEmail: user?.email || "admin",
+        action: "UPDATE_USER_ROLE",
+        details: `تغيير رتبة المستخدم ${users.find(u => u.uid === userUid)?.email} إلى ${getRoleLabel(newRole)}`,
+        targetId: userUid
+      });
+
       toast({
         title: "تم تحديث الرتبة",
         description: `تم تغيير رتبة المستخدم بنجاح إلى ${getRoleLabel(newRole)}`,
@@ -619,6 +730,27 @@ export default function AdminDashboard() {
       }
 
       await updateDoc(doc(db, "users", selectedUserVIP.uid), updateData);
+
+      // إشعار للمستخدم
+      if (vipStatus !== "none") {
+        await addNotification({
+          userId: selectedUserVIP.uid,
+          title: "تم تحديث حالة VIP 🌟",
+          message: `تمت ترقية حسابك إلى باقة VIP (${VIP_PACKAGES[vipStatus as keyof typeof VIP_PACKAGES]?.nameAr || vipStatus}). استمتع بالميزات الحصرية!`,
+          type: "vip",
+          link: "/vip-packages",
+          isRead: false
+        });
+      }
+
+      // سجل العملية للمدير
+      await addActivityLog({
+        userId: user?.uid || "admin",
+        userEmail: user?.email || "admin",
+        action: "UPDATE_USER_VIP",
+        details: `تحديث حالة VIP للمستخدم ${selectedUserVIP.email} إلى ${vipStatus}`,
+        targetId: selectedUserVIP.uid
+      });
 
       toast({
         title: "تم التحديث بنجاح",
@@ -841,6 +973,10 @@ export default function AdminDashboard() {
                 <TabsTrigger value="payments" className="whitespace-nowrap px-4 py-2" data-testid="tab-payments">
                   <CreditCard className="h-4 w-4 ml-2" />
                   الدفع
+                </TabsTrigger>
+                <TabsTrigger value="logs" className="whitespace-nowrap px-4 py-2" data-testid="tab-logs">
+                  <History className="h-4 w-4 ml-2" />
+                  سجل العمليات
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -1418,6 +1554,68 @@ export default function AdminDashboard() {
                           <TableCell className="text-xs text-muted-foreground">{formatGregorianDate(o.createdAt)}</TableCell>
                         </TableRow>
                       ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="logs">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="space-y-4"
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5 text-primary" />
+                    سجل نشاط المنصة
+                  </CardTitle>
+                  <CardDescription>عرض آخر 100 عملية تمت على النظام</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30">
+                        <TableHead>الفاعل</TableHead>
+                        <TableHead>العملية</TableHead>
+                        <TableHead>التفاصيل</TableHead>
+                        <TableHead>التاريخ</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {logs.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                            لا توجد سجلات حالياً
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        logs.map((log) => (
+                          <TableRow key={log.id} className="text-xs">
+                            <TableCell>
+                              <div className="font-medium">{log.userEmail}</div>
+                              <div className="text-[10px] text-muted-foreground">{log.userId.slice(0, 8)}</div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={cn(
+                                "text-[10px] uppercase",
+                                log.action.includes("DELETE") && "border-red-200 text-red-600 bg-red-50",
+                                log.action.includes("APPROVE") && "border-green-200 text-green-600 bg-green-50",
+                                log.action.includes("UPDATE") && "border-blue-200 text-blue-600 bg-blue-50"
+                              )}>
+                                {log.action}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="max-w-md">{log.details}</TableCell>
+                            <TableCell className="text-muted-foreground font-mono">
+                              {formatGregorianDate(log.createdAt)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
