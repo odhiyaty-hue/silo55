@@ -440,7 +440,6 @@ export default function AdminDashboard() {
     try {
       const apiKey = "AIzaSyDbPwDwrnGjqbf2QiJRUh9Df9wcu6NclrY";
       
-      // Prepare Context
       const statsContext = `
 أنت مساعد ذكي لمنصة "أضحيّتي" (Odhiyaty). إليك بيانات لوحة التحكم الحالية:
 - إجمالي الأغنام: ${sheep.length}
@@ -453,16 +452,18 @@ export default function AdminDashboard() {
 - الطلبات قيد المراجعة: ${orders.filter((o: Order) => !o.status || o.status === 'pending').length}
 - الطلبات المرفوضة: ${orders.filter((o: Order) => o.status === 'rejected').length}
 - إجمالي المستخدمين: ${users.length} (بائعين: ${users.filter((u: User) => u.role === 'seller').length}, مشترين: ${users.filter((u: User) => u.role === 'buyer').length}, مديرين: ${users.filter((u: User) => u.role === 'admin').length})
-أجب باللغة العربية بأسلوب احترافي وودي ومختصر ومفيد جداً.
+أجب باللغة العربية بأسلوب احترافي ومفيد.
 `;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          system_instruction: {
+            parts: [{ text: statsContext }]
+          },
           contents: [
-            { role: "user", parts: [{ text: statsContext }] },
-            ...aiMessages.map((m: any) => ({ 
+            ...aiMessages.slice(1).map((m: any) => ({ 
               role: m.role === 'user' ? 'user' : 'model', 
               parts: [{ text: m.content }] 
             })),
@@ -471,13 +472,24 @@ export default function AdminDashboard() {
         })
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        // If v1beta fails with 404, we could try fallback but usually 404 is a model name issue
+        throw new Error(errorData.error?.message || `خطأ ${response.status}: فشل الاتصال`);
+      }
+
       const data = await response.json();
       const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "عذراً، لم أستطع معالجة طلبك حالياً.";
       
       setAiMessages((prev: { role: 'user' | 'assistant', content: string }[]) => [...prev, { role: 'assistant', content: aiResponse }]);
-    } catch (error) {
-      console.error("Gemini Error:", error);
-      setAiMessages((prev: { role: 'user' | 'assistant', content: string }[]) => [...prev, { role: 'assistant', content: "عذراً، حدث خطأ في الاتصال بالمساعد الذكي." }]);
+    } catch (error: any) {
+      console.error("Gemini Error Detailed:", error);
+      let errorMsg = `عذراً، حدث خطأ: ${error.message}`;
+      if (error.message?.includes("Failed to fetch")) {
+        errorMsg = "عذراً، تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت أو تجربة متصفح آخر/VPN.";
+      }
+      
+      setAiMessages((prev: { role: 'user' | 'assistant', content: string }[]) => [...prev, { role: 'assistant', content: errorMsg }]);
     } finally {
       setIsAiThinking(false);
     }
