@@ -288,20 +288,6 @@ export default function OrdersPage() {
                       >
                         عرض التفاصيل
                       </Button>
-                      {order.sellerPhone && (
-                        <Button
-                          variant="outline"
-                          className="w-full"
-                          onClick={() => {
-                            window.open(
-                              `https://wa.me/${order.sellerPhone.replace(/\D/g, "")}?text=السلام عليكم، أتواصل معك بخصوص الطلب ${order.id}`,
-                              "_blank"
-                            );
-                          }}
-                        >
-                          واتساب البائع
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </CardContent>

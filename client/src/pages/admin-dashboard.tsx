@@ -232,6 +232,16 @@ export default function AdminDashboard() {
         updatedAt: Date.now(),
       });
 
+      if (!approved) {
+        const order = orders.find(o => o.id === orderId);
+        if (order?.sheepId) {
+          await updateDoc(doc(db, "sheep", order.sheepId), {
+            isSold: false,
+            updatedAt: Date.now(),
+          });
+        }
+      }
+
       toast({
         title: approved ? "تم قبول الطلب" : "تم رفض الطلب",
         description: approved ? "تم تأكيد الطلب بنجاح" : "تم رفض الطلب",
