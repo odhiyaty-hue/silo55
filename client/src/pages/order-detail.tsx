@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import { useState, useEffect } from "react";
 import { doc, getDoc, updateDoc, onSnapshot } from "firebase/firestore";
+import PrintInvoice from "@/components/PrintInvoice";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +52,7 @@ interface Order {
   buyerName?: string;
   buyerEmail?: string;
   notes?: string;
+  status: "pending" | "confirmed" | "rejected" | "delivered";
 }
 
 export default function OrderDetailPage({ params }: { params: { id: string } }) {
@@ -257,6 +259,15 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
             {order.orderStatus === "delivered" && "✅ مكتمل"}
             {order.orderStatus === "cancelled" && "❌ ملغى"}
           </Badge>
+          {order.status === "confirmed" && (
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => window.print()}
+            >
+              <CheckCircle className="ml-2 h-4 w-4" />
+              طباعة فاتورة الشراء
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -568,6 +579,12 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
           </div>
         </DialogContent>
       </Dialog>
+      {/* قسم الفاتورة المخفي (يظهر عند الطباعة فقط) */}
+      {order.status === "confirmed" && (
+        <div className="hidden print:block">
+          <PrintInvoice order={order} type="buyer" />
+        </div>
+      )}
     </div>
   );
 }

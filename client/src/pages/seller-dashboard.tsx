@@ -1,5 +1,7 @@
 import Header from "@/components/Header";
 import { useState, useEffect } from "react";
+import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { uploadMultipleImagesToImgBB } from "@/lib/imgbb";
@@ -32,6 +34,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import PrintInvoice from "@/components/PrintInvoice";
+import { Printer, ShoppingBag } from "lucide-react";
 import placeholderImage from "@assets/generated_images/sheep_product_placeholder.png";
 
 export default function SellerDashboard() {
@@ -39,7 +52,10 @@ export default function SellerDashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [sheep, setSheep] = useState<Sheep[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [printingOrder, setPrintingOrder] = useState<any | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -70,6 +86,7 @@ export default function SellerDashboard() {
   useEffect(() => {
     if (user) {
       fetchSheep();
+      fetchOrders();
     }
   }, [user]);
 
@@ -117,6 +134,37 @@ export default function SellerDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchOrders = async () => {
+    if (!user) return;
+    
+    setOrdersLoading(true);
+    try {
+      const ordersQuery = query(
+        collection(db, "orders"),
+        where("sellerId", "==", user.uid)
+      );
+      
+      const snapshot = await getDocs(ordersQuery);
+      const ordersData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      setOrders(ordersData.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0)));
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  const handlePrintInvoice = (order: any) => {
+    setPrintingOrder(order);
+    setTimeout(() => {
+      window.print();
+    }, 500);
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -296,30 +344,116 @@ export default function SellerDashboard() {
           </Card>
         </div>
 
-        {/* Sheep Grid */}
-        {loading ? (
-          <p className="text-center text-muted-foreground">جاري التحميل...</p>
-        ) : sheep.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-lg text-muted-foreground mb-4">
-                لم تقم بإضافة أي قوائم بعد
-              </p>
-              <Button onClick={() => setAddDialogOpen(true)}>
-                <Plus className="ml-2 h-4 w-4" />
-                إضافة أول خروف
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sheep.map(s => (
-              <SheepCard key={s.id} sheep={s} showStatus={true} />
-            ))}
-          </div>
-        )}
+        {/* Tabs System */}
+        <Tabs defaultValue="sheep" className="space-y-6">
+          <TabsList className="bg-muted/50 p-1">
+            <TabsTrigger value="sheep" className="px-6">أغنامي ({sheep.length})</TabsTrigger>
+            <TabsTrigger value="orders" className="px-6">طلبات البيع ({orders.length})</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="sheep">
+            {loading ? (
+              <p className="text-center text-muted-foreground">جاري التحميل...</p>
+            ) : sheep.length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-lg text-muted-foreground mb-4">
+                    لم تقم بإضافة أي قوائم بعد
+                  </p>
+                  <Button onClick={() => setAddDialogOpen(true)}>
+                    <Plus className="ml-2 h-4 w-4" />
+                    إضافة أول خروف
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {sheep.map(s => (
+                  <SheepCard key={s.id} sheep={s} showStatus={true} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="orders">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShoppingBag className="h-5 w-5 text-primary" />
+                  طلبات الزبائن
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {ordersLoading ? (
+                  <p className="text-center text-muted-foreground py-8">جاري تحميل الطلبات...</p>
+                ) : orders.length === 0 ? (
+                  <div className="text-center py-12">
+                    <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-20" />
+                    <p className="text-muted-foreground">لا توجد طلبات بيع حالياً</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-right">رقم الطلب</TableHead>
+                          <TableHead className="text-right">التاريخ</TableHead>
+                          <TableHead className="text-right">السعر</TableHead>
+                          <TableHead className="text-right">الحالة</TableHead>
+                          <TableHead className="text-right">الإجراءات</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {orders.map((o) => (
+                          <TableRow key={o.id}>
+                            <TableCell className="font-mono text-sm leading-none">#{o.id.slice(0, 8).toUpperCase()}</TableCell>
+                            <TableCell className="text-sm">
+                              {o.createdAt ? format(new Date(o.createdAt), "dd/MM/yyyy", { locale: ar }) : "-"}
+                            </TableCell>
+                            <TableCell className="font-semibold">{o.totalPrice?.toLocaleString()} د.ج</TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant="outline"
+                                className={
+                                  o.status === "confirmed" 
+                                    ? "bg-green-50 text-green-700 border-green-200" 
+                                    : o.status === "rejected"
+                                    ? "bg-red-50 text-red-700 border-red-200"
+                                    : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                }
+                              >
+                                {o.status === "confirmed" ? "مؤكد" : o.status === "rejected" ? "مرفوض" : "قيد المراجعة"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {o.status === "confirmed" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex items-center gap-2 border-primary text-primary hover:bg-primary/5"
+                                  onClick={() => handlePrintInvoice(o)}
+                                >
+                                  <Printer className="h-4 w-4" />
+                                  طباعة الفاتورة
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
+
+      {printingOrder && (
+        <PrintInvoice order={printingOrder} type="seller" />
+      )}
 
       {/* Add Sheep Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>

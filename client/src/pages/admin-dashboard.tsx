@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import AdminPaymentTab from "@/components/admin-payment-tab";
+import PrintInvoice from "@/components/PrintInvoice";
 import {
   Select,
   SelectContent,
@@ -1353,73 +1354,14 @@ export default function AdminDashboard() {
       </Dialog>
     </div>
 
-    {/* Printable Invoice Section */}
-    {printingOrder && (
-      <div className="hidden print:block bg-white text-black p-8 font-sans w-full min-h-screen" dir="rtl">
-        <div className="flex justify-between items-end border-b-2 border-slate-900 pb-6 mb-8">
-          <div>
-            <h1 className="text-4xl font-extrabold text-slate-900">فاتورة طلب</h1>
-            <p className="text-lg text-slate-600 mt-2 font-medium">تاريخ الفاتورة: {formatGregorianDate(Date.now())}</p>
-          </div>
-          <div className="text-left bg-slate-100 p-4 rounded-lg">
-            <p className="text-sm text-slate-500 font-bold mb-1">رقم الطلب</p>
-            <p className="text-xl font-bold font-mono">#{printingOrder.id.slice(0, 8).toUpperCase()}</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-8 mb-10">
-          <div className="border border-slate-200 rounded-xl p-6 shadow-sm">
-            <h3 className="text-xl font-bold bg-slate-100 p-2 rounded mb-4 text-slate-800 border-r-4 border-primary">معلومات المشتري</h3>
-            <div className="space-y-3 text-lg">
-              <p className="flex justify-between"><span className="text-slate-500 font-medium">الاسم الكامل:</span> <span className="font-semibold">{printingOrder.buyerName || "-"}</span></p>
-              <p className="flex justify-between"><span className="text-slate-500 font-medium">الإيميل:</span> <span className="font-semibold">{printingOrder.buyerEmail || "-"}</span></p>
-              <p className="flex justify-between"><span className="text-slate-500 font-medium">رقم الجوال:</span> <span className="font-semibold">{printingOrder.buyerPhone || "-"}</span></p>
-              <p className="flex justify-between"><span className="text-slate-500 font-medium">المدينة / الولاية:</span> <span className="font-semibold">{printingOrder.buyerCity || "-"}</span></p>
-              <p className="flex justify-between"><span className="text-slate-500 font-medium">العنوان / البلدية:</span> <span className="font-semibold">{printingOrder.buyerAddress || "-"}</span></p>
-              {printingOrder.nationalId && (
-                <p className="flex justify-between"><span className="text-slate-500 font-medium">رقم التعريف الوطني:</span> <span className="font-semibold">{printingOrder.nationalId}</span></p>
-              )}
-              {printingOrder.monthlySalary && (
-                <p className="flex justify-between"><span className="text-slate-500 font-medium">الراتب الشهري (د.ج):</span> <span className="font-semibold">{printingOrder.monthlySalary.toLocaleString()}</span></p>
-              )}
-            </div>
-          </div>
-
-          <div className="border border-slate-200 rounded-xl p-6 shadow-sm">
-            <h3 className="text-xl font-bold bg-slate-100 p-2 rounded mb-4 text-slate-800 border-r-4 border-primary">معلومات البائع</h3>
-            <div className="space-y-3 text-lg">
-              <p className="flex justify-between"><span className="text-slate-500 font-medium">الإيميل:</span> <span className="font-semibold">{printingOrder.sellerEmail || "-"}</span></p>
-            </div>
-          </div>
-        </div>
-
-        <div className="border border-slate-200 rounded-xl p-6 mb-10 shadow-sm">
-           <h3 className="text-xl font-bold bg-slate-100 p-2 rounded mb-4 text-slate-800 border-r-4 border-primary">تفاصيل المنتج (الخروف)</h3>
-           <div className="grid grid-cols-2 gap-6 text-lg">
-              <p className="flex flex-col"><span className="text-slate-500 font-medium">السلالة / النوع</span> <span className="font-semibold bg-slate-50 p-2 rounded mt-1 border border-slate-100">{printingOrder.sheepBreed || "-"}</span></p>
-              <p className="flex flex-col"><span className="text-slate-500 font-medium">رقم الترقيم</span> <span className="font-semibold bg-slate-50 p-2 rounded mt-1 border border-slate-100">{printingOrder.sheepTagNumber || "-"}</span></p>
-           </div>
-        </div>
-
-        <div className="flex justify-end pt-6 mt-12 border-t border-slate-300">
-          <div className="w-1/2 bg-slate-50 border border-slate-200 rounded-xl p-8">
-            <div className="flex justify-between items-center text-2xl font-black text-slate-900 border-b border-slate-200 pb-4 mb-4">
-              <span>المبلغ الإجمالي</span>
-              <span className="text-primary">{printingOrder.totalPrice.toLocaleString()} د.ج</span>
-            </div>
-            
-            <div className="flex justify-between items-center text-xl font-bold text-slate-800">
-              <span>الحالة</span>
-              <span className="text-green-600 bg-green-100 px-4 py-1 rounded-full">مؤكد ومسدد</span>
-            </div>
-            
-            <div className="text-center mt-8 text-slate-500 font-medium">
-              <p>نشكركم على ثقتكم بنا!</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
+      {/* Printable Invoice Section */}
+      {printingOrder && (
+        <PrintInvoice 
+          order={printingOrder} 
+          type="admin" 
+          sellerData={users.find(u => u.uid === printingOrder.sellerId)} 
+        />
+      )}
     </>
   );
 }
