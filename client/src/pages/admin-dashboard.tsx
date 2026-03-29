@@ -45,6 +45,10 @@ import {
   Search,
   PieChart as ChartPie,
   TrendingUp,
+  Bot,
+  Send,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 import {
   Dialog,
@@ -102,6 +106,20 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("pending");
   const [sheepStatusFilter, setSheepStatusFilter] = useState<string>("all");
 
+  // AI Assistant States
+  const [aiMessages, setAiMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
+    { role: 'assistant', content: "مرحباً بك! أنا مساعدك الذكي لمشروع أضحيّتي. كيف يمكنني مساعدتك في تحليل بيانات متجرك اليوم؟" }
+  ]);
+  const [aiInput, setAiInput] = useState("");
+  const [isAiThinking, setIsAiThinking] = useState(false);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [aiMessages]);
+
   // Helper function to format date as Gregorian (Miladi)
   const formatGregorianDate = (date: any) => {
     const d = new Date(date);
@@ -118,7 +136,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (selectedOrder) {
       const fetchReceipt = async () => {
-        const q = query(collection(db, "cibReceipts"), where("orderId", "==", selectedOrder.id));
+        const q = query(collection(db, "cibReceipts"), where("orderId", "==", (selectedOrder as any).id));
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
           setOrderReceipt(snapshot.docs[0].data() as CIBReceipt);
@@ -343,7 +361,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const pendingSheep = sheep.filter(s => s.status === "pending");
+  const pendingSheep = sheep.filter((s: Sheep) => s.status === "pending");
   const stats = {
     totalSheep: sheep.length,
     pendingSheep: pendingSheep.length,
@@ -351,7 +369,7 @@ export default function AdminDashboard() {
     totalUsers: users.length,
   };
 
-  const uniqueOrderCities = Array.from(new Set(orders.map(o => o.buyerCity || "غير محدد").filter(Boolean)));
+  const uniqueOrderCities = Array.from(new Set(orders.map((o: Order) => o.buyerCity || "غير محدد").filter(Boolean)));
   
   const sheepStatsData = [
     { status: "approved", count: sheep.filter((s: Sheep) => s.status === "approved" && !s.isSold).length, fill: "var(--color-approved)" },
@@ -411,6 +429,60 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleSendMessage = async () => {
+    if (!aiInput.trim() || isAiThinking) return;
+
+    const userMsg = aiInput.trim();
+    setAiInput("");
+    setAiMessages((prev: any) => [...prev, { role: 'user', content: userMsg }]);
+    setIsAiThinking(true);
+
+    try {
+      const apiKey = "AIzaSyDbPwDwrnGjqbf2QiJRUh9Df9wcu6NclrY";
+      
+      // Prepare Context
+      const statsContext = `
+أنت مساعد ذكي لمنصة "أضحيّتي" (Odhiyaty). إليك بيانات لوحة التحكم الحالية:
+- إجمالي الأغنام: ${sheep.length}
+- أغنام مقبولة: ${sheep.filter((s: Sheep) => s.status === 'approved' && !s.isSold).length}
+- أغنام قيد المراجعة: ${sheep.filter((s: Sheep) => s.status === 'pending').length}
+- أغنام مرفوضة: ${sheep.filter((s: Sheep) => s.status === 'rejected').length}
+- أغنام مباعة: ${sheep.filter((s: Sheep) => s.isSold).length}
+- إجمالي الطلبات: ${orders.length}
+- الطلبات المؤكدة: ${orders.filter((o: Order) => o.status === 'confirmed').length}
+- الطلبات قيد المراجعة: ${orders.filter((o: Order) => !o.status || o.status === 'pending').length}
+- الطلبات المرفوضة: ${orders.filter((o: Order) => o.status === 'rejected').length}
+- إجمالي المستخدمين: ${users.length} (بائعين: ${users.filter((u: User) => u.role === 'seller').length}, مشترين: ${users.filter((u: User) => u.role === 'buyer').length}, مديرين: ${users.filter((u: User) => u.role === 'admin').length})
+أجب باللغة العربية بأسلوب احترافي وودي ومختصر ومفيد جداً.
+`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            { role: "user", parts: [{ text: statsContext }] },
+            ...aiMessages.map((m: any) => ({ 
+              role: m.role === 'user' ? 'user' : 'model', 
+              parts: [{ text: m.content }] 
+            })),
+            { role: "user", parts: [{ text: userMsg }] }
+          ]
+        })
+      });
+
+      const data = await response.json();
+      const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "عذراً، لم أستطع معالجة طلبك حالياً.";
+      
+      setAiMessages((prev: { role: 'user' | 'assistant', content: string }[]) => [...prev, { role: 'assistant', content: aiResponse }]);
+    } catch (error) {
+      console.error("Gemini Error:", error);
+      setAiMessages((prev: { role: 'user' | 'assistant', content: string }[]) => [...prev, { role: 'assistant', content: "عذراً، حدث خطأ في الاتصال بالمساعد الذكي." }]);
+    } finally {
+      setIsAiThinking(false);
+    }
+  };
+
   const filteredSheep = sheep.filter((s: Sheep) => {
     if (sheepStatusFilter === "all") return true;
     if (sheepStatusFilter === "approved") return s.status === "approved" && !s.isSold;
@@ -420,7 +492,7 @@ export default function AdminDashboard() {
     return true;
   });
 
-  const filteredOrders = orders.filter(o => {
+  const filteredOrders = orders.filter((o: Order) => {
     let statusMatch = true;
     if (statusFilter === "pending") statusMatch = (!o.status || o.status === "pending");
     else if (statusFilter === "confirmed") statusMatch = o.status === "confirmed";
@@ -755,16 +827,21 @@ export default function AdminDashboard() {
                   جميع الأغنام
                 </TabsTrigger>
                 <TabsTrigger value="sellers" className="whitespace-nowrap px-4 py-2" data-testid="tab-sellers">
-                  البائعون ({users.filter(u => u.role === "seller").length})
+                  البائعون ({users.filter((u: User) => u.role === "seller").length})
                 </TabsTrigger>
                 <TabsTrigger value="users" className="whitespace-nowrap px-4 py-2" data-testid="tab-users">
                   المستخدمون
                 </TabsTrigger>
                 <TabsTrigger value="vip" className="whitespace-nowrap px-4 py-2" data-testid="tab-vip">
-                  إدارة VIP ({users.filter(u => u.vipStatus && u.vipStatus !== "none").length})
+                  إدارة VIP ({users.filter((u: User) => u.vipStatus && u.vipStatus !== "none").length})
                 </TabsTrigger>
                 <TabsTrigger value="orders" className="whitespace-nowrap px-4 py-2" data-testid="tab-orders">
                   الطلبات
+                </TabsTrigger>
+                <TabsTrigger value="ai" className="whitespace-nowrap px-4 py-2 gap-2" data-testid="tab-ai">
+                  <Bot className="h-4 w-4" />
+                  المساعد الذكي
+                  <Zap className="h-3 w-3 fill-yellow-400 text-yellow-500 animate-pulse" />
                 </TabsTrigger>
                 <TabsTrigger value="payments" className="whitespace-nowrap px-4 py-2" data-testid="tab-payments">
                   <CreditCard className="h-4 w-4 ml-2" />
@@ -805,7 +882,7 @@ export default function AdminDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {users.map(user => (
+                      {users.map((user: User) => (
                         <TableRow key={user.uid}>
                           <TableCell className="font-medium">{user.email}</TableCell>
                           <TableCell>{user.fullName || "-"}</TableCell>
@@ -866,7 +943,7 @@ export default function AdminDashboard() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {pendingSheep.map(s => (
+                {pendingSheep.map((s: Sheep) => (
                   <Card key={s.id} className="overflow-hidden" data-testid={`card-pending-${s.id}`}>
                     <div className="aspect-[4/3] overflow-hidden bg-muted">
                       <img
@@ -1006,7 +1083,7 @@ export default function AdminDashboard() {
                 <CardTitle>البائعون - البيانات الشخصية ({users.filter(u => u.role === "seller").length})</CardTitle>
               </CardHeader>
               <CardContent>
-                {users.filter(u => u.role === "seller").length === 0 ? (
+                {users.filter((u: User) => u.role === "seller").length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     لا توجد بيانات بائعين
                   </div>
@@ -1025,7 +1102,7 @@ export default function AdminDashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {users.filter(u => u.role === "seller").map(u => (
+                        {users.filter((u: User) => u.role === "seller").map((u: User) => (
                           <TableRow key={u.uid}>
                             <TableCell className="font-medium">{u.email}</TableCell>
                             <TableCell>{u.fullName || "-"}</TableCell>
@@ -1065,7 +1142,7 @@ export default function AdminDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map(u => (
+                    {users.map((u: User) => (
                       <TableRow key={u.uid}>
                         <TableCell>{u.email}</TableCell>
                         <TableCell>{getRoleBadge(u.role)}</TableCell>
@@ -1159,7 +1236,7 @@ export default function AdminDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredOrders.map(o => (
+                      {filteredOrders.map((o: Order) => (
                         <TableRow key={o.id}>
                           <TableCell>
                             <Checkbox 
@@ -1216,6 +1293,83 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* AI Assistant Tab */}
+          <TabsContent value="ai">
+            <Card className="border-primary/20 bg-primary/5 min-h-[600px] flex flex-col">
+              <CardHeader className="border-b bg-background/50 backdrop-blur-sm">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary rounded-lg shadow-lg shadow-primary/20">
+                    <Bot className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">خبير أضحيّتي (AI)</CardTitle>
+                    <CardDescription>مساعدك الذكي لتحليل البيانات واقتراح خطط المبيعات</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="flex-1 overflow-hidden p-0 relative h-[500px]">
+                <div 
+                  ref={scrollRef}
+                  className="h-full overflow-y-auto p-4 space-y-4 scroll-smooth"
+                >
+                  {aiMessages.map((msg: any, idx: number) => (
+                    <div 
+                      key={idx} 
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`max-w-[80%] p-3 rounded-2xl ${
+                        msg.role === 'user' 
+                          ? 'bg-primary text-primary-foreground rounded-tr-none' 
+                          : 'bg-background border shadow-sm rounded-tl-none'
+                      }`}>
+                        <div className="flex items-start gap-2">
+                          {msg.role === 'assistant' && <Sparkles className="h-4 w-4 mt-1 text-primary shrink-0" />}
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {isAiThinking && (
+                    <div className="flex justify-start">
+                      <div className="bg-background border shadow-sm p-4 rounded-2xl rounded-tl-none">
+                        <div className="flex gap-1">
+                          <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></span>
+                          <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                          <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+
+              <div className="p-4 bg-background border-t">
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="اسأل الخبير حول التحليلات أو حالة المتجر..." 
+                    value={aiInput}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAiInput(e.target.value)}
+                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleSendMessage()}
+                    className="flex-1 bg-muted/50 focus-visible:ring-primary"
+                    disabled={isAiThinking}
+                  />
+                  <Button 
+                    onClick={handleSendMessage} 
+                    disabled={isAiThinking || !aiInput.trim()}
+                    className="shadow-md shadow-primary/20 px-6"
+                  >
+                    {isAiThinking ? <Loader2 className="h-4 w-4 animate-spin text-right" /> : <Send className="h-4 w-4 text-right" />}
+                    <span className="mr-2 hidden md:inline font-bold">إرسال</span>
+                  </Button>
+                </div>
+                <p className="text-[10px] text-center text-muted-foreground mt-2 px-4 italic">
+                  * يقوم المساعد بتحليل البيانات الحالية ويقدم نصائح بناءً على الإحصائيات المتوفرة.
+                </p>
+              </div>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -1258,7 +1412,7 @@ export default function AdminDashboard() {
                     id="vip-expiry"
                     type="date"
                     value={vipExpiryDate}
-                    onChange={(e) => setVipExpiryDate(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVipExpiryDate(e.target.value)}
                     className="w-full"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
@@ -1333,7 +1487,7 @@ export default function AdminDashboard() {
                   <h4 className="font-semibold border-b pb-2">تفاصيل البائع</h4>
                   <div className="text-sm space-y-2">
                     {(() => {
-                      const seller = users.find(u => u.uid === selectedOrder.sellerId);
+                      const seller = users.find((u: User) => u.uid === selectedOrder.sellerId);
                       return seller ? (
                         <>
                           <p><span className="text-muted-foreground">الاسم:</span> {seller.fullName || "-"}</p>
@@ -1442,7 +1596,7 @@ export default function AdminDashboard() {
                   className="w-full p-3 rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   rows={3}
                   value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRejectionReason(e.target.value)}
                 />
               </div>
             </div>
@@ -1476,34 +1630,34 @@ export default function AdminDashboard() {
           <DialogHeader>
             <DialogTitle>إضافة أضحية مستوردة</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAddImportedSheep} className="space-y-4">
+          <form onSubmit={(e: React.FormEvent) => handleAddImportedSheep(e)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>السعر (د.ج)</Label>
-                <Input type="number" value={newSheep.price} onChange={e => setNewSheep({...newSheep, price: e.target.value})} required />
+                <Input type="number" value={newSheep.price} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewSheep({...newSheep, price: e.target.value})} required />
               </div>
               <div className="space-y-2">
                 <Label>الوزن (كجم)</Label>
-                <Input type="number" value={newSheep.weight} onChange={e => setNewSheep({...newSheep, weight: e.target.value})} required />
+                <Input type="number" value={newSheep.weight} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewSheep({...newSheep, weight: e.target.value})} required />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>العمر (شهر)</Label>
-                <Input type="number" value={newSheep.age} onChange={e => setNewSheep({...newSheep, age: e.target.value})} required />
+                <Input type="number" value={newSheep.age} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewSheep({...newSheep, age: e.target.value})} required />
               </div>
               <div className="space-y-2">
                 <Label>الولاية</Label>
-                <Input value={newSheep.city} onChange={e => setNewSheep({...newSheep, city: e.target.value})} required />
+                <Input value={newSheep.city} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewSheep({...newSheep, city: e.target.value})} required />
               </div>
             </div>
             <div className="space-y-2">
               <Label>البلدية</Label>
-              <Input value={newSheep.municipality} onChange={e => setNewSheep({...newSheep, municipality: e.target.value})} required />
+              <Input value={newSheep.municipality} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewSheep({...newSheep, municipality: e.target.value})} required />
             </div>
             <div className="space-y-2">
               <Label>الوصف</Label>
-              <Input value={newSheep.description} onChange={e => setNewSheep({...newSheep, description: e.target.value})} required />
+              <Input value={newSheep.description} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewSheep({...newSheep, description: e.target.value})} required />
             </div>
             <div className="space-y-3">
               <Label>الصور (2-5 صور من الجهاز) *</Label>
@@ -1528,7 +1682,7 @@ export default function AdminDashboard() {
 
                 {importedImagePreviews.length > 0 && (
                   <div className="grid grid-cols-3 gap-2 mt-4">
-                    {importedImagePreviews.map((preview, idx) => (
+                    {importedImagePreviews.map((preview: string, idx: number) => (
                       <div key={idx} className="relative group">
                         <img
                           src={preview}
@@ -1564,7 +1718,7 @@ export default function AdminDashboard() {
         <PrintInvoice 
           order={printingOrder} 
           type="admin" 
-          sellerData={users.find(u => u.uid === printingOrder.sellerId)} 
+          sellerData={users.find((u: User) => u.uid === printingOrder.sellerId)} 
         />
       )}
     </>
