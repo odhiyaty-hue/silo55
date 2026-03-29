@@ -53,6 +53,7 @@ export default function SellerDashboard() {
   const [, setLocation] = useLocation();
   const [sheep, setSheep] = useState<Sheep[]>([]);
   const [loading, setLoading] = useState(true);
+  const [printingOrder, setPrintingOrder] = useState<any | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -121,6 +122,35 @@ export default function SellerDashboard() {
       console.error("Error fetching sheep:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePrintInvoiceBySheepId = async (sheepId: string) => {
+    try {
+      const ordersQuery = query(
+        collection(db, "orders"),
+        where("sheepId", "==", sheepId)
+      );
+      
+      const snapshot = await getDocs(ordersQuery);
+      if (!snapshot.empty) {
+        const orderData = {
+          id: snapshot.docs[0].id,
+          ...snapshot.docs[0].data()
+        };
+        setPrintingOrder(orderData);
+        setTimeout(() => {
+          window.print();
+        }, 500);
+      } else {
+        toast({
+          title: "خطأ",
+          description: "لم يتم العثور على طلب لهذا الخروف",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching order for printing:", error);
     }
   };
 
@@ -313,11 +343,27 @@ export default function SellerDashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sheep.map(s => (
-              <SheepCard key={s.id} sheep={s} showStatus={true} />
+              <div key={s.id} className="flex flex-col gap-2">
+                <SheepCard sheep={s} showStatus={true} />
+                {s.isSold && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full border-primary text-primary hover:bg-primary/5"
+                    onClick={() => handlePrintInvoiceBySheepId(s.id)}
+                  >
+                    <Printer className="ml-2 h-4 w-4" />
+                    طباعة فاتورة البيع
+                  </Button>
+                )}
+              </div>
             ))}
           </div>
         )}
       </div>
+
+      {printingOrder && (
+        <PrintInvoice order={printingOrder} type="seller" />
+      )}
 
       {/* Add Sheep Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>

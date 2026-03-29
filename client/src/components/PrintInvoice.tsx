@@ -79,7 +79,7 @@ export default function PrintInvoice({ order, type, sellerData }: PrintInvoicePr
           </div>
         </div>
 
-        {/* قسم البائع */}
+        {/* قسم البائع - يظهر بشكل مختصر جداً للمشتري */}
         <div className="border border-slate-200 rounded-xl p-6 shadow-sm">
           <h3 className="text-xl font-bold bg-slate-100 p-2 rounded mb-4 text-slate-800 border-r-4 border-primary">
             معلومات البائع
@@ -101,10 +101,12 @@ export default function PrintInvoice({ order, type, sellerData }: PrintInvoicePr
                 </p>
               </>
             )}
-            <p className="flex justify-between">
-              <span className="text-slate-500 font-medium">البريد:</span> 
-              <span className="font-semibold">{displaySellerEmail}</span>
-            </p>
+            {isBuyer && (
+              <p className="flex justify-between">
+                <span className="text-slate-500 font-medium">البريد:</span> 
+                <span className="font-semibold">{displaySellerEmail}</span>
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -155,10 +157,29 @@ export default function PrintInvoice({ order, type, sellerData }: PrintInvoicePr
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
+        @page {
+          size: A4;
+          margin: 10mm;
+        }
         @media print {
           body * { visibility: hidden; }
           .printable-area, .printable-area * { visibility: visible; }
-          .printable-area { position: absolute; left: 0; top: 0; width: 100%; }
+          .printable-area { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            padding: 20px !important;
+            margin: 0 !important;
+          }
+          /* تصغير حجم الخط لضمان احتواء الفاتورة في صفحة واحدة */
+          h1 { font-size: 24pt !important; }
+          h3 { font-size: 16pt !important; }
+          p, span { font-size: 12pt !important; }
+          .shadow-sm { box-shadow: none !important; }
+          .rounded-xl { border-radius: 4px !important; }
         }
       `}} />
     </div>
