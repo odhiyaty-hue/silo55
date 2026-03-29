@@ -10,15 +10,15 @@ export default function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={toggleTheme}
-      data-testid="button-theme-toggle"
-      className="toggle-elevate"
-      aria-label="تبديل الوضع الليلي"
+      title={theme === "light" ? "تفعيل الوضع الليلي" : "تفعيل الوضع النهاري"}
+      className="rounded-full w-10 h-10 transition-all duration-300 hover:bg-accent hover:text-accent-foreground"
     >
       {theme === "light" ? (
-        <Moon className="h-5 w-5" />
+        <Moon className="h-[1.2rem] w-[1.2rem] transition-all" />
       ) : (
-        <Sun className="h-5 w-5" />
+        <Sun className="h-[1.2rem] w-[1.2rem] transition-all text-yellow-400" />
       )}
+      <span className="sr-only">تبديل الوضع</span>
     </Button>
   );
 }

@@ -45,7 +45,12 @@ import {
   Search,
   PieChart as ChartPie,
   TrendingUp,
+  DollarSign,
+  BarChart3,
+  ArrowUpRight,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -356,6 +361,12 @@ export default function AdminDashboard() {
     totalUsers: users.length,
   };
 
+  const totalRevenue = orders
+    .filter((o: Order) => o.status === "confirmed")
+    .reduce((sum: number, o: Order) => sum + (o.totalPrice || 0), 0);
+  
+  const confirmedOrdersCount = orders.filter((o: Order) => o.status === "confirmed").length;
+
   const uniqueOrderCities = Array.from(new Set(orders.map((o: Order) => o.buyerCity || "غير محدد").filter(Boolean)));
   
   const sheepStatsData = [
@@ -376,6 +387,7 @@ export default function AdminDashboard() {
     { role: "buyer", count: users.filter((u: User) => u.role === "buyer").length, fill: "var(--color-buyer)" },
     { role: "admin", count: users.filter((u: User) => u.role === "admin").length, fill: "var(--color-admin)" },
   ];
+
 
   const sheepChartConfig = {
     count: { label: "العدد" },
@@ -468,7 +480,8 @@ export default function AdminDashboard() {
       return;
     }
 
-    setSelectedImportedImages(prev => [...prev, ...files]);
+    const newFiles = files as File[];
+    setSelectedImportedImages(prev => [...prev, ...newFiles]);
     
     files.forEach(file => {
       const reader = new FileReader();
@@ -643,10 +656,29 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
-        {/* Detailed Stats Charts */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {loading ? (
+            <>
+              <Card className="p-6 h-[400px] flex flex-col items-center justify-center space-y-4">
+                <Skeleton className="h-48 w-48 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </Card>
+              <Card className="p-6 h-[400px] flex flex-col items-center justify-center space-y-4">
+                <Skeleton className="h-48 w-48 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </Card>
+              <Card className="p-6 h-[400px] flex flex-col items-center justify-center space-y-4">
+                <Skeleton className="h-48 w-48 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </Card>
+            </>
+          ) : (
+            <>
           {/* Sheep Stats Chart */}
-          <Card className="flex flex-col">
+          <Card className="flex flex-col hover:shadow-md transition-shadow">
             <CardHeader className="items-center pb-0">
               <CardTitle>الأضاحي</CardTitle>
               <CardDescription>توزيع حالة الأضاحي في المنصة</CardDescription>
@@ -782,6 +814,8 @@ export default function AdminDashboard() {
               ))}
             </div>
           </Card>
+          </>
+          )}
         </div>
 
         {/* Tabs */}
@@ -798,6 +832,9 @@ export default function AdminDashboard() {
                 <TabsTrigger value="users" className="whitespace-nowrap px-4 py-2" data-testid="tab-users">
                   المستخدمون ({users.length})
                 </TabsTrigger>
+                <TabsTrigger value="finances" className="whitespace-nowrap px-4 py-2" data-testid="tab-finances">
+                  المالية
+                </TabsTrigger>
                 <TabsTrigger value="orders" className="whitespace-nowrap px-4 py-2" data-testid="tab-orders">
                   الطلبات
                 </TabsTrigger>
@@ -811,375 +848,581 @@ export default function AdminDashboard() {
 
           {/* Payments Management Tab */}
           <TabsContent value="payments">
-            <AdminPaymentTab />
+            <AnimatePresence mode="wait">
+              <motion.div
+                key="payments-tab"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <AdminPaymentTab />
+              </motion.div>
+            </AnimatePresence>
           </TabsContent>
 
           {/* VIP Management Tab (Removed - Integrated into Users Detail) */}
 
           {/* Pending Reviews Tab */}
           <TabsContent value="pending">
-            {loading ? (
-              <p className="text-center text-muted-foreground">جاري التحميل...</p>
-            ) : pendingSheep.length === 0 ? (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <CheckCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-lg text-muted-foreground">
-                    لا توجد قوائم قيد المراجعة
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {pendingSheep.map((s: Sheep) => (
-                  <Card key={s.id} className="overflow-hidden" data-testid={`card-pending-${s.id}`}>
-                    <div className="aspect-[4/3] overflow-hidden bg-muted">
-                      <img
-                        src={s.images?.[0] || placeholderImage}
-                        alt="خروف"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <Badge>{s.price.toLocaleString()} د.ج</Badge>
-                        <Badge variant="secondary">{s.city}</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-                        {s.description}
+            <AnimatePresence mode="wait">
+              {loading ? (
+                <motion.div
+                  key="loading-pending"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                >
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i} className="overflow-hidden border-muted/60">
+                      <Skeleton className="aspect-[4/3] w-full" />
+                      <CardContent className="p-4 space-y-4">
+                        <div className="flex justify-between">
+                          <Skeleton className="h-6 w-20" />
+                          <Skeleton className="h-6 w-20" />
+                        </div>
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </motion.div>
+              ) : pendingSheep.length === 0 ? (
+                <motion.div
+                  key="empty-pending"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <Card>
+                    <CardContent className="p-12 text-center">
+                      <CheckCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-lg text-muted-foreground">
+                        لا توجد قوائم قيد المراجعة
                       </p>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => setSelectedSheep(s)}
-                          data-testid={`button-review-${s.id}`}
-                        >
-                          مراجعة
-                        </Button>
-                      </div>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="content-pending"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {pendingSheep.map((s: Sheep) => (
+                      <Card key={s.id} className="overflow-hidden" data-testid={`card-pending-${s.id}`}>
+                        <div className="aspect-[4/3] overflow-hidden bg-muted">
+                          <img
+                            src={s.images?.[0] || placeholderImage}
+                            alt="خروف"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start mb-3">
+                            <Badge>{s.price.toLocaleString()} د.ج</Badge>
+                            <Badge variant="secondary">{s.city}</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                            {s.description}
+                          </p>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => setSelectedSheep(s)}
+                              data-testid={`button-review-${s.id}`}
+                            >
+                              مراجعة
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </TabsContent>
 
           {/* All Sheep Tab */}
           <TabsContent value="all">
-            <Card>
-              <CardHeader className="flex flex-col md:flex-row justify-between md:items-center gap-4 space-y-0">
-                <CardTitle>جميع الأغنام ({filteredSheep.length})</CardTitle>
-                <div className="flex gap-2 items-center">
-                  <Select value={sheepStatusFilter} onValueChange={setSheepStatusFilter}>
-                    <SelectTrigger className="w-[150px]">
-                      <SelectValue placeholder="الحالة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">كل الحالات</SelectItem>
-                      <SelectItem value="approved">مقبول</SelectItem>
-                      <SelectItem value="pending">قيد الانتظار</SelectItem>
-                      <SelectItem value="rejected">مرفوض</SelectItem>
-                      <SelectItem value="sold">مباع</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>الصورة</TableHead>
-                      <TableHead>السعر</TableHead>
-                      <TableHead>المدينة</TableHead>
-                      <TableHead>البائع</TableHead>
-                      <TableHead>الحالة</TableHead>
-                      <TableHead>الإجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredSheep.map(s => (
-                      <TableRow key={s.id}>
-                        <TableCell>
-                          <img
-                            src={s.images?.[0] || placeholderImage}
-                            alt="خروف"
-                            className="h-12 w-12 rounded object-cover"
-                          />
-                        </TableCell>
-                        <TableCell>{s.price.toLocaleString()} د.ج</TableCell>
-                        <TableCell>{s.city}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {s.sellerEmail || s.sellerId.slice(0, 8)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1 items-start">
-                            {s.isSold && (
-                              <Badge className="bg-gray-500/10 text-gray-700 border-gray-500/20">
-                                مباعة
-                              </Badge>
-                            )}
-                            <Badge
-                              className={
-                                s.status === "approved"
-                                  ? "bg-green-500/10 text-green-700"
-                                  : s.status === "pending"
-                                  ? "bg-yellow-500/10 text-yellow-700"
-                                  : "bg-red-500/10 text-red-700"
-                              }
-                            >
-                              {s.status === "approved" ? "مقبول" : s.status === "pending" ? "قيد المراجعة" : "مرفوض"}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-2">
-                            {s.status === "approved" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteSheep(s.id)}
-                                disabled={reviewing}
-                                className="text-red-500 hover:text-red-700"
-                                title="حذف الخروف"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleToggleSoldStatus(s.id, !!s.isSold)}
-                              disabled={reviewing}
-                            >
-                              {s.isSold ? "إرجاع كغير مباعة" : "تحديد كمباعة"}
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            <AnimatePresence mode="wait">
+              {loading ? (
+                <motion.div
+                  key="loading-all"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-4"
+                >
+                  <Card className="p-8">
+                    <div className="space-y-6">
+                      <div className="flex justify-between">
+                        <Skeleton className="h-8 w-48" />
+                        <Skeleton className="h-10 w-32" />
+                      </div>
+                      <Skeleton className="h-[400px] w-full" />
+                    </div>
+                  </Card>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="content-all"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card className="hover:shadow-sm transition-shadow">
+                    <CardHeader className="flex flex-col md:flex-row justify-between md:items-center gap-4 space-y-0">
+                      <CardTitle>جميع الأغنام ({filteredSheep.length})</CardTitle>
+                      <div className="flex gap-2 items-center">
+                        <Select value={sheepStatusFilter} onValueChange={setSheepStatusFilter}>
+                          <SelectTrigger className="w-[150px]">
+                            <SelectValue placeholder="الحالة" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">كل الحالات</SelectItem>
+                            <SelectItem value="approved">مقبول</SelectItem>
+                            <SelectItem value="pending">قيد الانتظار</SelectItem>
+                            <SelectItem value="rejected">مرفوض</SelectItem>
+                            <SelectItem value="sold">مباع</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/30">
+                            <TableHead>الصورة</TableHead>
+                            <TableHead>السعر</TableHead>
+                            <TableHead>المدينة</TableHead>
+                            <TableHead>البائع</TableHead>
+                            <TableHead>الحالة</TableHead>
+                            <TableHead>الإجراءات</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredSheep.map(s => (
+                            <TableRow key={s.id} className="hover:bg-muted/20 transition-colors">
+                              <TableCell>
+                                <img
+                                  src={s.images?.[0] || placeholderImage}
+                                  alt="خروف"
+                                  className="h-12 w-12 rounded-lg object-cover shadow-sm border border-border/50"
+                                />
+                              </TableCell>
+                              <TableCell className="font-bold">{s.price.toLocaleString()} د.ج</TableCell>
+                              <TableCell>{s.city}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">
+                                {s.sellerEmail || s.sellerId.slice(0, 8)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-col gap-1 items-start">
+                                  {s.isSold && (
+                                    <Badge className="bg-slate-500/10 text-slate-700 border-slate-500/20">
+                                      مباعة
+                                    </Badge>
+                                  )}
+                                  <Badge
+                                    className={
+                                      s.status === "approved"
+                                        ? "bg-green-500/10 text-green-700 border-green-500/20"
+                                        : s.status === "pending"
+                                        ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                                        : "bg-red-500/10 text-red-700 border-red-500/20"
+                                    }
+                                  >
+                                    {s.status === "approved" ? "مقبول" : s.status === "pending" ? "قيد المراجعة" : "مرفوض"}
+                                  </Badge>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-2">
+                                  {s.status === "approved" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeleteSheep(s.id)}
+                                      disabled={reviewing}
+                                      className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                      title="حذف الخروف"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleToggleSoldStatus(s.id, !!s.isSold)}
+                                    disabled={reviewing}
+                                    className="text-xs h-8"
+                                  >
+                                    {s.isSold ? "إرجاع كغير مباعة" : "تحديد كمباعة"}
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </TabsContent>
 
 
           {/* Users Tab */}
           <TabsContent value="users">
-            <Card>
-              <CardHeader className="flex flex-col md:flex-row justify-between md:items-center gap-4 space-y-0">
-                <CardTitle>المستخدمون ({filteredUsers.length})</CardTitle>
-                <div className="flex gap-2 flex-wrap items-center">
-                  <div className="relative w-full md:w-64">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="البحث (بالبريد أو الهاتف)"
-                      className="pr-10"
-                      value={userSearchQuery}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
-                    <SelectTrigger className="w-[130px]">
-                      <SelectValue placeholder="الرتبة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">كل الرتب</SelectItem>
-                      <SelectItem value="admin">مدير</SelectItem>
-                      <SelectItem value="seller">بائع</SelectItem>
-                      <SelectItem value="buyer">مشتري</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={userVipFilter} onValueChange={setUserVipFilter}>
-                    <SelectTrigger className="w-[130px]">
-                      <SelectValue placeholder="حالة VIP" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">كل الحالات</SelectItem>
-                      <SelectItem value="none">عادي</SelectItem>
-                      <SelectItem value="silver">فضية</SelectItem>
-                      <SelectItem value="gold">ذهبية</SelectItem>
-                      <SelectItem value="platinum">بلاتينيوم</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>البريد الإلكتروني</TableHead>
-                      <TableHead>الاسم</TableHead>
-                      <TableHead>الدور</TableHead>
-                      <TableHead>المدينة</TableHead>
-                      <TableHead>تاريخ التسجيل</TableHead>
-                      <TableHead>الإجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredUsers.map((u: User) => (
-                      <TableRow key={u.uid}>
-                        <TableCell className="font-medium">{u.email}</TableCell>
-                        <TableCell>{u.fullName || "-"}</TableCell>
-                        <TableCell>{getRoleBadge(u.role)}</TableCell>
-                        <TableCell>{u.city || "-"}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {formatGregorianDate(u.createdAt)}
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              setSelectedUserVIP(u);
-                              setVipStatus(u.vipStatus || "none");
-                              setVipExpiryDate(u.vipExpiresAt ? new Date(u.vipExpiresAt).toISOString().split("T")[0] : "");
-                            }}
-                          >
-                            عرض التفاصيل
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            <AnimatePresence mode="wait">
+              {loading ? (
+                <motion.div
+                  key="loading-users"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-4"
+                >
+                  <Card className="p-8">
+                    <Skeleton className="h-[400px] w-full" />
+                  </Card>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="content-users"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card className="hover:shadow-sm transition-shadow">
+                    <CardHeader className="flex flex-col md:flex-row justify-between md:items-center gap-4 space-y-0">
+                      <CardTitle>المستخدمون ({filteredUsers.length})</CardTitle>
+                      <div className="flex gap-2 flex-wrap items-center">
+                        <div className="relative w-full md:w-64">
+                          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="البحث (بالبريد أو الهاتف)"
+                            className="pr-10"
+                            value={userSearchQuery}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserSearchQuery(e.target.value)}
+                          />
+                        </div>
+                        <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
+                          <SelectTrigger className="w-[130px]">
+                            <SelectValue placeholder="الرتبة" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">كل الرتب</SelectItem>
+                            <SelectItem value="admin">مدير</SelectItem>
+                            <SelectItem value="seller">بائع</SelectItem>
+                            <SelectItem value="buyer">مشتري</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={userVipFilter} onValueChange={setUserVipFilter}>
+                          <SelectTrigger className="w-[130px]">
+                            <SelectValue placeholder="حالة VIP" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">كل الحالات</SelectItem>
+                            <SelectItem value="none">عادي</SelectItem>
+                            <SelectItem value="silver">فضية</SelectItem>
+                            <SelectItem value="gold">ذهبية</SelectItem>
+                            <SelectItem value="platinum">بلاتينيوم</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/30">
+                            <TableHead>البريد الإلكتروني</TableHead>
+                            <TableHead>الاسم</TableHead>
+                            <TableHead>الدور</TableHead>
+                            <TableHead>المدينة</TableHead>
+                            <TableHead>تاريخ التسجيل</TableHead>
+                            <TableHead>الإجراءات</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredUsers.map((u: User) => (
+                            <TableRow key={u.uid} className="hover:bg-muted/10 transition-colors">
+                              <TableCell className="font-medium">{u.email}</TableCell>
+                              <TableCell>{u.fullName || "-"}</TableCell>
+                              <TableCell>{getRoleBadge(u.role)}</TableCell>
+                              <TableCell>{u.city || "-"}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {formatGregorianDate(u.createdAt)}
+                              </TableCell>
+                              <TableCell>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="h-8 text-xs"
+                                  onClick={() => {
+                                    setSelectedUserVIP(u);
+                                    setVipStatus(u.vipStatus || "none");
+                                    setVipExpiryDate(u.vipExpiresAt ? new Date(u.vipExpiresAt).toISOString().split("T")[0] : "");
+                                  }}
+                                >
+                                  عرض التفاصيل
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </TabsContent>
 
           {/* Orders Tab */}
           <TabsContent value="orders">
-            <Card>
-              <CardHeader className="flex flex-col md:flex-row justify-between md:items-center gap-4 space-y-0">
-                <CardTitle>الطلبات ({filteredOrders.length})</CardTitle>
-                <div className="flex gap-2 flex-wrap items-center">
-                  {selectedOrderIds.length > 0 && (
-                    <Button variant="destructive" size="sm" onClick={handleDeleteSelectedOrders} disabled={loading}>
-                      <Trash2 className="ml-2 h-4 w-4" />
-                      حذف المحدد ({selectedOrderIds.length})
-                    </Button>
-                  )}
-                  <div className="relative w-full md:w-64">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="البحث (رقم، بريد...)"
-                      className="pr-10"
-                      value={orderSearchQuery}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrderSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[150px]">
-                      <SelectValue placeholder="الحالة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">كل الحالات</SelectItem>
-                      <SelectItem value="pending">قيد المراجعة</SelectItem>
-                      <SelectItem value="confirmed">مؤكد</SelectItem>
-                      <SelectItem value="rejected">مرفوض</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={cityFilter} onValueChange={setCityFilter}>
-                    <SelectTrigger className="w-[150px]">
-                      <SelectValue placeholder="المدينة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">كل المدن</SelectItem>
-                      {uniqueOrderCities.map(city => (
-                        <SelectItem key={city} value={city}>{city}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <p className="text-center text-muted-foreground">جاري التحميل...</p>
-                ) : orders.length === 0 ? (
-                  <Card>
-                    <CardContent className="p-12 text-center">
-                      <ShoppingBag className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-lg text-muted-foreground">
-                        لا توجد طلبات حتى الآن
-                      </p>
+            <AnimatePresence mode="wait">
+              {loading ? (
+                <motion.div
+                  key="loading-orders"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-4"
+                >
+                  <Card className="p-8">
+                    <Skeleton className="h-[500px] w-full" />
+                  </Card>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="content-orders"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card className="hover:shadow-sm transition-shadow">
+                    <CardHeader className="flex flex-col md:flex-row justify-between md:items-center gap-4 space-y-0">
+                      <CardTitle>الطلبات ({filteredOrders.length})</CardTitle>
+                      <div className="flex gap-2 flex-wrap items-center">
+                        {selectedOrderIds.length > 0 && (
+                          <Button variant="destructive" size="sm" onClick={handleDeleteSelectedOrders} disabled={loading}>
+                            <Trash2 className="ml-2 h-4 w-4" />
+                            حذف المحدد ({selectedOrderIds.length})
+                          </Button>
+                        )}
+                        <div className="relative w-full md:w-64">
+                          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="البحث (رقم، بريد...)"
+                            className="pr-10"
+                            value={orderSearchQuery}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrderSearchQuery(e.target.value)}
+                          />
+                        </div>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <SelectTrigger className="w-[150px]">
+                            <SelectValue placeholder="الحالة" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">كل الحالات</SelectItem>
+                            <SelectItem value="pending">قيد المراجعة</SelectItem>
+                            <SelectItem value="confirmed">مؤكد</SelectItem>
+                            <SelectItem value="rejected">مرفوض</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={cityFilter} onValueChange={setCityFilter}>
+                          <SelectTrigger className="w-[150px]">
+                            <SelectValue placeholder="المدينة" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">كل المدن</SelectItem>
+                            {uniqueOrderCities.map(city => (
+                              <SelectItem key={city} value={city}>{city}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {orders.length === 0 ? (
+                        <Card className="border-dashed">
+                          <CardContent className="p-12 text-center">
+                            <ShoppingBag className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-20" />
+                            <p className="text-lg text-muted-foreground">
+                              لا توجد طلبات حتى الآن
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/30">
+                              <TableHead className="w-[50px]">
+                                <Checkbox 
+                                  checked={filteredOrders.length > 0 && selectedOrderIds.length === filteredOrders.length}
+                                  onCheckedChange={handleSelectAllOrders}
+                                />
+                              </TableHead>
+                              <TableHead>المشتري</TableHead>
+                              <TableHead>البائع</TableHead>
+                              <TableHead>السعر</TableHead>
+                              <TableHead>الحالة</TableHead>
+                              <TableHead>التاريخ</TableHead>
+                              <TableHead>الإجراءات</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredOrders.map((o: Order) => (
+                              <TableRow key={o.id} className="hover:bg-muted/10 transition-colors">
+                                <TableCell>
+                                  <Checkbox 
+                                    checked={selectedOrderIds.includes(o.id)}
+                                    onCheckedChange={(checked) => handleOrderToggle(o.id, !!checked)}
+                                  />
+                                </TableCell>
+                                <TableCell className="text-sm font-medium">{o.buyerEmail || o.buyerId.slice(0, 8)}</TableCell>
+                                <TableCell className="text-sm">{o.sellerEmail || o.sellerId.slice(0, 8)}</TableCell>
+                                <TableCell className="font-bold">{o.totalPrice.toLocaleString()} د.ج</TableCell>
+                                <TableCell>
+                                  <Badge
+                                    className={
+                                      o.status === "confirmed"
+                                        ? "bg-green-500/10 text-green-700 border-green-500/20"
+                                        : (!o.status || o.status === "pending")
+                                        ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                                        : "bg-red-500/10 text-red-700 border-red-500/20"
+                                    }
+                                  >
+                                    {!o.status || o.status === "pending" ? "قيد المراجعة" : o.status === "confirmed" ? "مؤكد" : "مرفوض"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {formatGregorianDate(o.createdAt)}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex gap-2">
+                                  {(!o.status || o.status === "pending") && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 text-xs"
+                                      onClick={() => setSelectedOrder(o)}
+                                    >
+                                      مراجعة
+                                    </Button>
+                                  )}
+                                  {o.status === "confirmed" && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 text-xs bg-blue-500/5 hover:bg-blue-500/10 text-blue-600 border-blue-200"
+                                      onClick={() => handlePrintInvoice(o)}
+                                    >
+                                      <Printer className="ml-1 h-3.5 w-3.5" />
+                                      الفاتورة
+                                    </Button>
+                                  )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      )}
                     </CardContent>
                   </Card>
-                ) : (
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </TabsContent>
+
+          <TabsContent value="finances">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border-emerald-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-emerald-700 dark:text-emerald-400">إجمالي المبيعات المؤكدة</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-500">{totalRevenue.toLocaleString()} د.ج</div>
+                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3 text-emerald-500" />
+                      من {confirmedOrdersCount} طلب مكتمل
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 border-blue-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-400">الطلبات المكتملة</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-500">{confirmedOrdersCount}</div>
+                    <p className="text-xs text-muted-foreground mt-1">بمتوسط {(confirmedOrdersCount > 0 ? (totalRevenue / confirmedOrdersCount).toFixed(0) : 0).toLocaleString()} د.ج لكل طلب</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-400">نشاط المنصة</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-amber-600 dark:text-amber-500">{orders.length}</div>
+                    <p className="text-xs text-muted-foreground mt-1">إجمالي كافة الطلبات</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-emerald-500" />
+                    المعاملات الأخيرة
+                  </CardTitle>
+                  <CardDescription>أحدث عمليات البيع المؤكدة في النظام</CardDescription>
+                </CardHeader>
+                <CardContent>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[50px]">
-                          <Checkbox 
-                            checked={filteredOrders.length > 0 && selectedOrderIds.length === filteredOrders.length}
-                            onCheckedChange={handleSelectAllOrders}
-                          />
-                        </TableHead>
-                        <TableHead>المشتري</TableHead>
-                        <TableHead>البائع</TableHead>
-                        <TableHead>السعر</TableHead>
-                        <TableHead>الحالة</TableHead>
-                        <TableHead>التاريخ</TableHead>
-                        <TableHead>الإجراءات</TableHead>
+                        <TableHead className="text-right">رقم الطلب</TableHead>
+                        <TableHead className="text-right">المبلغ</TableHead>
+                        <TableHead className="text-right">المشتري</TableHead>
+                        <TableHead className="text-right">البائع</TableHead>
+                        <TableHead className="text-right">التاريخ</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredOrders.map((o: Order) => (
+                      {orders.filter((o: Order) => o.status === "confirmed").slice(0, 5).map((o) => (
                         <TableRow key={o.id}>
-                          <TableCell>
-                            <Checkbox 
-                              checked={selectedOrderIds.includes(o.id)}
-                              onCheckedChange={(checked) => handleOrderToggle(o.id, !!checked)}
-                            />
-                          </TableCell>
-                          <TableCell className="text-sm">{o.buyerEmail || o.buyerId.slice(0, 8)}</TableCell>
-                          <TableCell className="text-sm">{o.sellerEmail || o.sellerId.slice(0, 8)}</TableCell>
-                          <TableCell>{o.totalPrice.toLocaleString()} د.ج</TableCell>
-                          <TableCell>
-                            <Badge
-                              className={
-                                o.status === "confirmed"
-                                  ? "bg-green-500/10 text-green-700"
-                                  : (!o.status || o.status === "pending")
-                                  ? "bg-yellow-500/10 text-yellow-700"
-                                  : "bg-red-500/10 text-red-700"
-                              }
-                            >
-                              {!o.status || o.status === "pending" ? "قيد المراجعة" : o.status === "confirmed" ? "مؤكد" : "مرفوض"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {formatGregorianDate(o.createdAt)}
-                          </TableCell>
-                          <TableCell className="flex flex-col gap-2">
-                            {(!o.status || o.status === "pending") && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setSelectedOrder(o)}
-                              >
-                                مراجعة
-                              </Button>
-                            )}
-                            {o.status === "confirmed" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200"
-                                onClick={() => handlePrintInvoice(o)}
-                              >
-                                <Printer className="ml-2 h-4 w-4" />
-                                طباعة الفاتورة
-                              </Button>
-                            )}
-                          </TableCell>
+                          <TableCell className="font-mono text-xs">{o.id.substring(0, 8)}</TableCell>
+                          <TableCell className="font-bold text-emerald-600">{(o.totalPrice || 0).toLocaleString()} د.ج</TableCell>
+                          <TableCell className="text-xs">{o.buyerEmail}</TableCell>
+                          <TableCell className="text-xs">{o.sellerEmail}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{formatGregorianDate(o.createdAt)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
           </TabsContent>
 
         </Tabs>
