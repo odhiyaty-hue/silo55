@@ -45,10 +45,6 @@ import {
   Search,
   PieChart as ChartPie,
   TrendingUp,
-  Bot,
-  Send,
-  Sparkles,
-  Zap,
 } from "lucide-react";
 import {
   Dialog,
@@ -105,20 +101,6 @@ export default function AdminDashboard() {
   const [orderSearchQuery, setOrderSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
   const [sheepStatusFilter, setSheepStatusFilter] = useState<string>("all");
-
-  // AI Assistant States
-  const [aiMessages, setAiMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
-    { role: 'assistant', content: "مرحباً بك! أنا مساعدك الذكي لمشروع أضحيّتي. كيف يمكنني مساعدتك في تحليل بيانات متجرك اليوم؟" }
-  ]);
-  const [aiInput, setAiInput] = useState("");
-  const [isAiThinking, setIsAiThinking] = useState(false);
-  const scrollRef = React.useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [aiMessages]);
 
   // Helper function to format date as Gregorian (Miladi)
   const formatGregorianDate = (date: any) => {
@@ -429,73 +411,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!aiInput.trim() || isAiThinking) return;
-
-    const userMsg = aiInput.trim();
-    setAiInput("");
-    setAiMessages((prev: any) => [...prev, { role: 'user', content: userMsg }]);
-    setIsAiThinking(true);
-
-    try {
-      const apiKey = import.meta.env.VITE_OPENAI_API_KEY || "";
-      
-      const statsContext = `
-أنت مساعد ذكي لمنصة "أضحيّتي" (Odhiyaty). إليك بيانات لوحة التحكم الحالية:
-- إجمالي الأغنام: ${sheep.length}
-- أغنام مقبولة: ${sheep.filter((s: Sheep) => s.status === 'approved' && !s.isSold).length}
-- أغنام قيد المراجعة: ${sheep.filter((s: Sheep) => s.status === 'pending').length}
-- أغنام مرفوضة: ${sheep.filter((s: Sheep) => s.status === 'rejected').length}
-- أغنام مباعة: ${sheep.filter((s: Sheep) => s.isSold).length}
-- إجمالي الطلبات: ${orders.length}
-- الطلبات المؤكدة: ${orders.filter((o: Order) => o.status === 'confirmed').length}
-- الطلبات قيد المراجعة: ${orders.filter((o: Order) => !o.status || o.status === 'pending').length}
-- الطلبات المرفوضة: ${orders.filter((o: Order) => o.status === 'rejected').length}
-- إجمالي المستخدمين: ${users.length} (بائعين: ${users.filter((u: User) => u.role === 'seller').length}, مشترين: ${users.filter((u: User) => u.role === 'buyer').length}, مديرين: ${users.filter((u: User) => u.role === 'admin').length})
-أجب باللغة العربية بأسلوب احترافي وودي.
-`;
-
-      const response = await fetch(`https://api.openai.com/v1/chat/completions`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: statsContext },
-            ...aiMessages.map((m: any) => ({ 
-              role: m.role === 'user' ? 'user' : 'assistant', 
-              content: m.content 
-            })),
-            { role: "user", content: userMsg }
-          ],
-          temperature: 0.7
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || `خطأ ${response.status}: فشل الاتصال`);
-      }
-
-      const data = await response.json();
-      const aiResponse = data.choices?.[0]?.message?.content || "عذراً، لم أستطع معالجة طلبك حالياً.";
-      
-      setAiMessages((prev: { role: 'user' | 'assistant', content: string }[]) => [...prev, { role: 'assistant', content: aiResponse }]);
-    } catch (error: any) {
-      console.error("OpenAI Error Detailed:", error);
-      let errorMsg = `عذراً، حدث خطأ: ${error.message}`;
-      if (error.message?.includes("Failed to fetch")) {
-        errorMsg = "عذراً، تعذر الاتصال بخوادم OpenAI. يرجى التأكد من اتصال الإنترنت.";
-      }
-      
-      setAiMessages((prev: { role: 'user' | 'assistant', content: string }[]) => [...prev, { role: 'assistant', content: errorMsg }]);
-    } finally {
-      setIsAiThinking(false);
-    }
-  };
 
   const filteredSheep = sheep.filter((s: Sheep) => {
     if (sheepStatusFilter === "all") return true;
@@ -851,11 +766,6 @@ export default function AdminDashboard() {
                 </TabsTrigger>
                 <TabsTrigger value="orders" className="whitespace-nowrap px-4 py-2" data-testid="tab-orders">
                   الطلبات
-                </TabsTrigger>
-                <TabsTrigger value="ai" className="whitespace-nowrap px-4 py-2 gap-2" data-testid="tab-ai">
-                  <Bot className="h-4 w-4" />
-                  المساعد الذكي
-                  <Zap className="h-3 w-3 fill-yellow-400 text-yellow-500 animate-pulse" />
                 </TabsTrigger>
                 <TabsTrigger value="payments" className="whitespace-nowrap px-4 py-2" data-testid="tab-payments">
                   <CreditCard className="h-4 w-4 ml-2" />
@@ -1308,82 +1218,6 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          {/* AI Assistant Tab */}
-          <TabsContent value="ai">
-            <Card className="border-primary/20 bg-primary/5 min-h-[600px] flex flex-col">
-              <CardHeader className="border-b bg-background/50 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary rounded-lg shadow-lg shadow-primary/20">
-                    <Bot className="h-6 w-6 text-primary-foreground" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">خبير أضحيّتي (AI)</CardTitle>
-                    <CardDescription>مساعدك الذكي لتحليل البيانات واقتراح خطط المبيعات</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="flex-1 overflow-hidden p-0 relative h-[500px]">
-                <div 
-                  ref={scrollRef}
-                  className="h-full overflow-y-auto p-4 space-y-4 scroll-smooth"
-                >
-                  {aiMessages.map((msg: any, idx: number) => (
-                    <div 
-                      key={idx} 
-                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div className={`max-w-[80%] p-3 rounded-2xl ${
-                        msg.role === 'user' 
-                          ? 'bg-primary text-primary-foreground rounded-tr-none' 
-                          : 'bg-background border shadow-sm rounded-tl-none'
-                      }`}>
-                        <div className="flex items-start gap-2">
-                          {msg.role === 'assistant' && <Sparkles className="h-4 w-4 mt-1 text-primary shrink-0" />}
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {isAiThinking && (
-                    <div className="flex justify-start">
-                      <div className="bg-background border shadow-sm p-4 rounded-2xl rounded-tl-none">
-                        <div className="flex gap-1">
-                          <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></span>
-                          <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                          <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.4s]"></span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-
-              <div className="p-4 bg-background border-t">
-                <div className="flex gap-2">
-                  <Input 
-                    placeholder="اسأل الخبير حول التحليلات أو حالة المتجر..." 
-                    value={aiInput}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAiInput(e.target.value)}
-                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleSendMessage()}
-                    className="flex-1 bg-muted/50 focus-visible:ring-primary"
-                    disabled={isAiThinking}
-                  />
-                  <Button 
-                    onClick={handleSendMessage} 
-                    disabled={isAiThinking || !aiInput.trim()}
-                    className="shadow-md shadow-primary/20 px-6"
-                  >
-                    {isAiThinking ? <Loader2 className="h-4 w-4 animate-spin text-right" /> : <Send className="h-4 w-4 text-right" />}
-                    <span className="mr-2 hidden md:inline font-bold">إرسال</span>
-                  </Button>
-                </div>
-                <p className="text-[10px] text-center text-muted-foreground mt-2 px-4 italic">
-                  * يقوم المساعد بتحليل البيانات الحالية ويقدم نصائح بناءً على الإحصائيات المتوفرة.
-                </p>
-              </div>
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
 
