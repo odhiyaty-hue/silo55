@@ -438,7 +438,7 @@ export default function AdminDashboard() {
     setIsAiThinking(true);
 
     try {
-      const apiKey = "AIzaSyDbPwDwrnGjqbf2QiJRUh9Df9wcu6NclrY";
+      const apiKey = import.meta.env.VITE_OPENAI_API_KEY || "";
       
       const statsContext = `
 أنت مساعد ذكي لمنصة "أضحيّتي" (Odhiyaty). إليك بيانات لوحة التحكم الحالية:
@@ -452,23 +452,26 @@ export default function AdminDashboard() {
 - الطلبات قيد المراجعة: ${orders.filter((o: Order) => !o.status || o.status === 'pending').length}
 - الطلبات المرفوضة: ${orders.filter((o: Order) => o.status === 'rejected').length}
 - إجمالي المستخدمين: ${users.length} (بائعين: ${users.filter((u: User) => u.role === 'seller').length}, مشترين: ${users.filter((u: User) => u.role === 'buyer').length}, مديرين: ${users.filter((u: User) => u.role === 'admin').length})
-أجب باللغة العربية بأسلوب احترافي ومفيد.
+أجب باللغة العربية بأسلوب احترافي وودي.
 `;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://api.openai.com/v1/chat/completions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
         body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: statsContext }]
-          },
-          contents: [
-            ...aiMessages.slice(1).map((m: any) => ({ 
-              role: m.role === 'user' ? 'user' : 'model', 
-              parts: [{ text: m.content }] 
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: statsContext },
+            ...aiMessages.map((m: any) => ({ 
+              role: m.role === 'user' ? 'user' : 'assistant', 
+              content: m.content 
             })),
-            { role: "user", parts: [{ text: userMsg }] }
-          ]
+            { role: "user", content: userMsg }
+          ],
+          temperature: 0.7
         })
       });
 
@@ -478,14 +481,14 @@ export default function AdminDashboard() {
       }
 
       const data = await response.json();
-      const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "عذراً، لم أستطع معالجة طلبك حالياً.";
+      const aiResponse = data.choices?.[0]?.message?.content || "عذراً، لم أستطع معالجة طلبك حالياً.";
       
       setAiMessages((prev: { role: 'user' | 'assistant', content: string }[]) => [...prev, { role: 'assistant', content: aiResponse }]);
     } catch (error: any) {
-      console.error("Gemini Error Detailed:", error);
+      console.error("OpenAI Error Detailed:", error);
       let errorMsg = `عذراً، حدث خطأ: ${error.message}`;
       if (error.message?.includes("Failed to fetch")) {
-        errorMsg = "عذراً، تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت أو تجربة متصفح آخر/VPN.";
+        errorMsg = "عذراً، تعذر الاتصال بخوادم OpenAI. يرجى التأكد من اتصال الإنترنت.";
       }
       
       setAiMessages((prev: { role: 'user' | 'assistant', content: string }[]) => [...prev, { role: 'assistant', content: errorMsg }]);
