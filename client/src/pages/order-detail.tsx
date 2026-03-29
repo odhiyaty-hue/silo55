@@ -25,6 +25,7 @@ import {
   Clock,
   Truck,
   MapPin,
+  XCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -96,8 +97,8 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
         if (user.uid !== orderData.buyerId && user.uid !== orderData.sellerId && user.role !== "admin") {
           setLocation("/orders");
           toast({
-            title: "خطأ",
-            description: "لا توجد صلاحيات لعرض هذا الطلب",
+            title: "غير مسموح",
+            description: "ليس لديك صلاحية لعرض هذا الطلب",
             variant: "destructive",
           });
           return;
@@ -327,132 +328,42 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
               </CardContent>
             </Card>
 
-            {/* حالة الطلب - Timeline */}
+            {/* حالة الطلب */}
             <Card>
               <CardHeader>
                 <CardTitle>حالة الطلب</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {/* Timeline */}
-                  <div className="space-y-3">
-                    {[
-                      { status: "new", label: "تم استلام الطلب", icon: CheckCircle },
-                      { status: "preparing", label: "قيد التجهيز", icon: Clock },
-                      { status: "shipping", label: "في الطريق", icon: Truck },
-                      { status: "delivered", label: "مكتمل", icon: CheckCircle },
-                    ].map((step) => {
-                      const stepIndex = ["new", "preparing", "shipping", "delivered"].indexOf(
-                        step.status
-                      );
-                      const currentIndex = ["new", "preparing", "shipping", "delivered"].indexOf(
-                        order.orderStatus
-                      );
-                      const isCompleted = stepIndex <= currentIndex;
-                      const isCurrent = stepIndex === currentIndex;
-
-                      return (
-                        <div key={step.status} className="flex items-start gap-4">
-                          <div
-                            className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              isCompleted
-                                ? "bg-green-100 text-green-700"
-                                : "bg-gray-100 text-gray-400"
-                            }`}
-                          >
-                            <step.icon className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1">
-                            <p
-                              className={`font-semibold ${
-                                isCurrent ? "text-primary" : ""
-                              }`}
-                            >
-                              {step.label}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                <div className="flex flex-col items-center justify-center py-6 space-y-4">
+                  <div className={`h-16 w-16 rounded-full flex items-center justify-center ${
+                    order.status === "confirmed" ? "bg-green-100 text-green-600" :
+                    order.status === "rejected" ? "bg-red-100 text-red-600" :
+                    "bg-yellow-100 text-yellow-600"
+                  }`}>
+                    {order.status === "confirmed" ? <CheckCircle className="h-10 w-10" /> :
+                     order.status === "rejected" ? <XCircle className="h-10 w-10" /> :
+                     <Clock className="h-10 w-10" />}
                   </div>
-
-                  {/* رسالة في الطريق */}
-                  {isShipping && (
-                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-2">
-                      <Truck className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-semibold text-blue-900">طلبك في الطريق</p>
-                        <p className="text-sm text-blue-700">
-                          سيصل إليك قريباً. يمكنك التواصل مع البائع للاستفسار عن التفاصيل
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  <div className="text-center">
+                    <p className={`text-xl font-bold ${
+                      order.status === "confirmed" ? "text-green-600" :
+                      order.status === "rejected" ? "text-red-600" :
+                      "text-yellow-600"
+                    }`}>
+                      {order.status === "confirmed" ? "تم تأكيد الطلب" :
+                       order.status === "rejected" ? "تم رفض الطلب" :
+                       "الطلب قيد المراجعة"}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {order.status === "confirmed" ? "لقد تم قبول طلبك بنجاح" :
+                       order.status === "rejected" ? "نعتذر، لقد تم رفض الطلب" :
+                       "فريقنا يقوم حالياً بمراجعة طلبك"}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* معلومات الدفع */}
-            <Card>
-              <CardHeader>
-                <CardTitle>معلومات الدفع</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">طريقة الدفع</p>
-                    <p className="font-semibold">
-                      {order.paymentMethod === "card"
-                        ? "💳 تحويل بنكي"
-                        : order.paymentMethod === "cash"
-                        ? "💵 دفع عند الاستلام"
-                        : "📅 تقسيط"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">حالة الدفع</p>
-                    <div className="flex items-center gap-2">
-                      {order.paymentStatus === "completed" ||
-                      order.paymentStatus === "verified" ? (
-                        <>
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <p className="font-semibold text-green-600">✅ مدفوع</p>
-                        </>
-                      ) : order.paymentStatus === "pending" ? (
-                        <>
-                          <Clock className="h-4 w-4 text-yellow-600" />
-                          <p className="font-semibold text-yellow-600">⏳ قيد التحقق</p>
-                        </>
-                      ) : (
-                        <>
-                          <AlertTriangle className="h-4 w-4 text-red-600" />
-                          <p className="font-semibold text-red-600">❌ مرفوض</p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {order.paymentMethod === "cash" && (
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-900">
-                      💵 الدفع عند الاستلام: ستدفع المبلغ الكامل عند استقبال الأضحية
-                    </p>
-                  </div>
-                )}
-
-                {order.paymentMethod === "card" && (
-                  <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                    <p className="text-sm font-semibold text-purple-900 mb-2">
-                      💳 تحويل بنكي CIB
-                    </p>
-                    <p className="text-xs text-purple-700">
-                      يرجى التحويل إلى حساب البائع ورفع الإيصال للتحقق من الدفع
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           {/* العمود الجانبي */}
