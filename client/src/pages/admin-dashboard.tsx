@@ -99,6 +99,8 @@ export default function AdminDashboard() {
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [orderSearchQuery, setOrderSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("pending");
+  const [sheepStatusFilter, setSheepStatusFilter] = useState<string>("all");
 
   // Helper function to format date as Gregorian (Miladi)
   const formatGregorianDate = (date: any) => {
@@ -392,6 +394,32 @@ export default function AdminDashboard() {
     admin: { label: "مدير", color: "#9333ea" },
   } satisfies ChartConfig;
 
+  const handleStatClick = (type: 'sheep' | 'order' | 'user', value: string) => {
+    if (type === 'sheep') {
+      if (value === 'pending') {
+        setActiveTab("pending");
+      } else {
+        setActiveTab("all");
+        setSheepStatusFilter(value === 'approved' ? 'approved' : value === 'sold' ? 'sold' : value === 'rejected' ? 'rejected' : 'all');
+      }
+    } else if (type === 'order') {
+      setActiveTab("orders");
+      setStatusFilter(value);
+    } else if (type === 'user') {
+      if (value === 'seller') setActiveTab("sellers");
+      else if (value === 'buyer' || value === 'admin') setActiveTab("users");
+    }
+  };
+
+  const filteredSheep = sheep.filter((s: Sheep) => {
+    if (sheepStatusFilter === "all") return true;
+    if (sheepStatusFilter === "approved") return s.status === "approved" && !s.isSold;
+    if (sheepStatusFilter === "pending") return s.status === "pending";
+    if (sheepStatusFilter === "rejected") return s.status === "rejected";
+    if (sheepStatusFilter === "sold") return !!s.isSold;
+    return true;
+  });
+
   const filteredOrders = orders.filter(o => {
     let statusMatch = true;
     if (statusFilter === "pending") statusMatch = (!o.status || o.status === "pending");
@@ -608,12 +636,16 @@ export default function AdminDashboard() {
             </CardContent>
             <div className="flex flex-wrap gap-2 justify-center pb-4 px-4">
               {sheepStatsData.map((s) => (
-                <div key={s.status} className="flex items-center gap-1">
+                <button
+                  key={s.status}
+                  className="flex items-center gap-1 hover:bg-muted/50 p-1.5 rounded-md transition-colors cursor-pointer border border-transparent hover:border-border group"
+                  onClick={() => handleStatClick('sheep', s.status)}
+                >
                   <div className="h-3 w-3 rounded-full" style={{ background: (sheepChartConfig[s.status as keyof typeof sheepChartConfig] as any)?.color }} />
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
                     {(sheepChartConfig[s.status as keyof typeof sheepChartConfig] as any)?.label}: {s.count}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           </Card>
@@ -650,12 +682,16 @@ export default function AdminDashboard() {
             </CardContent>
             <div className="flex flex-wrap gap-2 justify-center pb-4 px-4">
               {orderStatsData.map((o) => (
-                <div key={o.status} className="flex items-center gap-1">
+                <button
+                  key={o.status}
+                  className="flex items-center gap-1 hover:bg-muted/50 p-1.5 rounded-md transition-colors cursor-pointer border border-transparent hover:border-border group"
+                  onClick={() => handleStatClick('order', o.status)}
+                >
                   <div className="h-3 w-3 rounded-full" style={{ background: (orderChartConfig[o.status as keyof typeof orderChartConfig] as any)?.color }} />
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
                     {(orderChartConfig[o.status as keyof typeof orderChartConfig] as any)?.label}: {o.count}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           </Card>
@@ -692,19 +728,23 @@ export default function AdminDashboard() {
             </CardContent>
             <div className="flex flex-wrap gap-2 justify-center pb-4 px-4">
               {userStatsData.map((u) => (
-                <div key={u.role} className="flex items-center gap-1">
+                <button
+                  key={u.role}
+                  className="flex items-center gap-1 hover:bg-muted/50 p-1.5 rounded-md transition-colors cursor-pointer border border-transparent hover:border-border group"
+                  onClick={() => handleStatClick('user', u.role)}
+                >
                   <div className="h-3 w-3 rounded-full" style={{ background: (userChartConfig[u.role as keyof typeof userChartConfig] as any)?.color }} />
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
                     {(userChartConfig[u.role as keyof typeof userChartConfig] as any)?.label}: {u.count}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           </Card>
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="pending" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="relative">
             <div className="overflow-x-auto pb-2 scrollbar-hide">
               <TabsList className="inline-flex w-auto min-w-full justify-start md:justify-center gap-1 p-1 bg-muted/50">
@@ -863,8 +903,22 @@ export default function AdminDashboard() {
           {/* All Sheep Tab */}
           <TabsContent value="all">
             <Card>
-              <CardHeader>
-                <CardTitle>جميع الأغنام ({sheep.length})</CardTitle>
+              <CardHeader className="flex flex-col md:flex-row justify-between md:items-center gap-4 space-y-0">
+                <CardTitle>جميع الأغنام ({filteredSheep.length})</CardTitle>
+                <div className="flex gap-2 items-center">
+                  <Select value={sheepStatusFilter} onValueChange={setSheepStatusFilter}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="الحالة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">كل الحالات</SelectItem>
+                      <SelectItem value="approved">مقبول</SelectItem>
+                      <SelectItem value="pending">قيد الانتظار</SelectItem>
+                      <SelectItem value="rejected">مرفوض</SelectItem>
+                      <SelectItem value="sold">مباع</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -879,7 +933,7 @@ export default function AdminDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sheep.map(s => (
+                    {filteredSheep.map(s => (
                       <TableRow key={s.id}>
                         <TableCell>
                           <img
