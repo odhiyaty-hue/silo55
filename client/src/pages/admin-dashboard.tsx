@@ -1,11 +1,10 @@
 import Header from "@/components/Header";
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { collection, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, addDoc, limit, onSnapshot } from "firebase/firestore";
+import { collection, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
-import { Sheep, Order, User, VIPStatus, VIP_PACKAGES, CIBReceipt, Notification, ActivityLog } from "@shared/schema";
-import { addNotification, addActivityLog } from "@/lib/activity";
+import { Sheep, Order, User, VIPStatus, VIP_PACKAGES, CIBReceipt } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +50,6 @@ import {
   DollarSign,
   BarChart3,
   ArrowUpRight,
-  History,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -102,7 +100,6 @@ export default function AdminDashboard() {
   const [vipExpiryDate, setVipExpiryDate] = useState("");
   const [vipStatus, setVipStatus] = useState<VIPStatus>("none");
   const [updatingVIP, setUpdatingVIP] = useState(false);
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [orderReceipt, setOrderReceipt] = useState<CIBReceipt | null>(null);
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -128,21 +125,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchAllData();
-    
-    // Real-time logs
-    const q = query(collection(db, "activityLogs"), limit(100));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as ActivityLog[];
-      
-      // الترتيب برمجياً لتجنب مشكلة الفهارس المفقودة في Firestore
-      const sortedLogs = data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-      setLogs(sortedLogs);
-    });
-
-    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -422,6 +404,13 @@ export default function AdminDashboard() {
     } else {
       setSelectedOrderIds(prev => prev.filter(id => id !== orderId));
     }
+  };
+
+  const handlePrintInvoice = (order: Order) => {
+    setPrintingOrder(order);
+    setTimeout(() => {
+      window.print();
+    }, 500); // Allow react to render the invoice before triggering print dialog
   };
 
   const handleDeleteSheep = async (sheepId: string) => {
@@ -787,24 +776,9 @@ export default function AdminDashboard() {
             <h1 className="text-3xl md:text-4xl font-semibold mb-2">لوحة تحكم الإدارة</h1>
             <p className="text-muted-foreground">إدارة شاملة للمنصة</p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={async () => {
-              await addNotification({
-                userId: user?.uid || "",
-                title: "إشعار تجريبي 🔔",
-                message: "هذا إشعار تجريبي للتأكد من عمل نظام التنبيهات بنجاح.",
-                type: "system",
-                link: "/admin",
-                isRead: false
-              });
-              toast({ title: "تم إرسال الإشعار", description: "سيظهر في جرس التنبيهات خلال لحظات." });
-            }} variant="outline" className="border-primary text-primary hover:bg-primary/5">
-              تجربة الإشعارات
-            </Button>
-            <Button onClick={() => setAddImportedDialogOpen(true)} className="bg-primary">
-              إضافة أضحية مستوردة +
-            </Button>
-          </div>
+          <Button onClick={() => setAddImportedDialogOpen(true)} className="bg-primary">
+            إضافة أضحية مستوردة +
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -993,10 +967,6 @@ export default function AdminDashboard() {
                   <CreditCard className="h-4 w-4 ml-2" />
                   الدفع
                 </TabsTrigger>
-                <TabsTrigger value="logs" className="whitespace-nowrap px-4 py-2" data-testid="tab-logs">
-                  <History className="h-4 w-4 ml-2" />
-                  سجل العمليات
-                </TabsTrigger>
               </TabsList>
             </div>
           </div>
@@ -1015,8 +985,6 @@ export default function AdminDashboard() {
               </motion.div>
             </AnimatePresence>
           </TabsContent>
-
-          {/* VIP Management Tab (Removed - Integrated into Users Detail) */}
 
           {/* Pending Reviews Tab */}
           <TabsContent value="pending">
@@ -1467,6 +1435,15 @@ export default function AdminDashboard() {
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 text-xs border-primary/20 text-primary hover:bg-primary/5"
+                                      onClick={() => handlePrintInvoice(o)}
+                                    >
+                                      <Printer className="ml-1 h-3 w-3" />
+                                      الفاتورة
+                                    </Button>
                                   {(!o.status || o.status === "pending") && (
                                     <Button
                                       size="sm"
@@ -1568,69 +1545,6 @@ export default function AdminDashboard() {
               </Card>
             </motion.div>
           </TabsContent>
-
-          <TabsContent value="logs">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="space-y-4"
-            >
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <History className="h-5 w-5 text-primary" />
-                    سجل نشاط المنصة
-                  </CardTitle>
-                  <CardDescription>عرض آخر 100 عملية تمت على النظام</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/30">
-                        <TableHead>الفاعل</TableHead>
-                        <TableHead>العملية</TableHead>
-                        <TableHead>التفاصيل</TableHead>
-                        <TableHead>التاريخ</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {logs.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
-                            لا توجد سجلات حالياً
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        logs.map((log) => (
-                          <TableRow key={log.id} className="text-xs">
-                            <TableCell>
-                              <div className="font-medium">{log.userEmail}</div>
-                              <div className="text-[10px] text-muted-foreground">{log.userId.slice(0, 8)}</div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={cn(
-                                "text-[10px] uppercase",
-                                log.action.includes("DELETE") && "border-red-200 text-red-600 bg-red-50",
-                                log.action.includes("APPROVE") && "border-green-200 text-green-600 bg-green-50",
-                                log.action.includes("UPDATE") && "border-blue-200 text-blue-600 bg-blue-50"
-                              )}>
-                                {log.action}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="max-w-md">{log.details}</TableCell>
-                            <TableCell className="text-muted-foreground font-mono">
-                              {formatGregorianDate(log.createdAt)}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </TabsContent>
-
         </Tabs>
       </div>
 
@@ -1640,13 +1554,10 @@ export default function AdminDashboard() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>تفاصيل وإدارة المستخدم</DialogTitle>
-              <DialogDescription>
-                {selectedUserVIP.email}
-              </DialogDescription>
+              <DialogDescription>{selectedUserVIP.email}</DialogDescription>
             </DialogHeader>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* User Details Section */}
               <div className="space-y-4">
                 <h3 className="font-bold border-b pb-2">تفاصيل التواصل والعنوان</h3>
                 <div className="space-y-2 text-sm text-right">
@@ -1677,13 +1588,9 @@ export default function AdminDashboard() {
                     </Select>
                     {updatingRole && <Loader2 className="h-4 w-4 animate-spin mt-2" />}
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    * سيتم منح المستخدم صلاحيات الرتبة الجديدة فور الحفظ.
-                  </p>
                 </div>
               </div>
 
-              {/* VIP Management Section */}
               <div className="space-y-4 bg-muted/30 p-4 rounded-lg border">
                 <h3 className="font-bold flex items-center gap-2 border-b pb-2">
                   <Crown className="h-4 w-4 text-amber-500" />
@@ -2009,6 +1916,9 @@ export default function AdminDashboard() {
           </form>
         </DialogContent>
       </Dialog>
+      {printingOrder && (
+        <PrintInvoice order={printingOrder} />
+      )}
     </div>
     </>
   );

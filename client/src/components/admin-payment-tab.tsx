@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { collection, getDocs, updateDoc, doc, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { CIBReceipt, Payment, VIP_PACKAGES, Notification } from "@shared/schema";
-import { addNotification, addActivityLog } from "@/lib/activity";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -100,26 +99,7 @@ export default function AdminPaymentTab() {
         });
       }
 
-      // إشعار للمستخدم
-      await addNotification({
-        userId: selectedReceipt.userId,
-        title: "تم تأكيد عملية الدفع ✅",
-        message: selectedReceipt.vipUpgrade 
-          ? `تم التحقق من وصل الدفع الخاص بك وتفعيل باقة VIP بنجاح.` 
-          : `تم التحقق من وصل الدفع الخاص بطلب الشراء الخاص بك.`,
-        type: selectedReceipt.vipUpgrade ? "vip" : "order",
-        link: selectedReceipt.vipUpgrade ? "/vip-packages" : "/orders",
-        isRead: false
-      });
-
-      // سجل العملية للمدير
-      await addActivityLog({
-        userId: user?.uid || "admin",
-        userEmail: user?.email || "admin",
-        action: "VERIFY_CIB_RECEIPT",
-        details: `توثيق وصل ${selectedReceipt.vipUpgrade ? "ترقية VIP" : "طلب شراء"} للمستخدم ${selectedReceipt.userEmail}`,
-        targetId: selectedReceipt.id
-      });
+      
 
       toast({
         title: "تم التحقق من الوصل",
@@ -152,24 +132,7 @@ export default function AdminPaymentTab() {
         updatedAt: Date.now(),
       });
 
-      // إشعار للمستخدم بالرفض
-      await addNotification({
-        userId: selectedReceipt.userId,
-        title: "تم رفض وصل الدفع ❌",
-        message: `نعتذر، لم يتم قبول وصل الدفع الخاص بك. السبب: ${rejectionReason || "غير محدد"}`,
-        type: "system",
-        link: "/support",
-        isRead: false
-      });
-
-      // سجل العملية للمدير
-      await addActivityLog({
-        userId: user?.uid || "admin",
-        userEmail: user?.email || "admin",
-        action: "REJECT_CIB_RECEIPT",
-        details: `رفض وصل ${selectedReceipt.vipUpgrade ? "ترقية VIP" : "طلب شراء"} للمستخدم ${selectedReceipt.userEmail}. السبب: ${rejectionReason || "غير محدد"}`,
-        targetId: selectedReceipt.id
-      });
+      
 
       toast({
         title: "تم رفض الوصل",

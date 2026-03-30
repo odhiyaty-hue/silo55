@@ -1,7 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
-import NotificationBell from "@/components/NotificationBell";
 import { Link, useLocation } from "wouter";
 import { Crown, LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -108,7 +107,6 @@ export default function Header() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-2">
-              <NotificationBell />
               <ThemeToggle />
               
               {/* VIP Button */}
