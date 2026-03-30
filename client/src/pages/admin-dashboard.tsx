@@ -127,22 +127,19 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchAllData();
-    fetchLogs();
-  }, []);
-
-  const fetchLogs = async () => {
-    try {
-      const q = query(collection(db, "activityLogs"), orderBy("createdAt", "desc"), limit(100));
-      const snapshot = await getDocs(q);
+    
+    // Real-time logs
+    const q = query(collection(db, "activityLogs"), orderBy("createdAt", "desc"), limit(100));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const logsData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as ActivityLog[];
       setLogs(logsData);
-    } catch (error) {
-      console.error("Error fetching logs:", error);
-    }
-  };
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (selectedOrder) {
@@ -424,13 +421,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handlePrintInvoice = (order: Order) => {
-    setPrintingOrder(order);
-    setTimeout(() => {
-      window.print();
-    }, 500); // Allow react to render the invoice before triggering print dialog
-  };
-
   const handleDeleteSheep = async (sheepId: string) => {
     if (!confirm("هل أنت متأكد من حذف هذا العرض؟")) return;
     
@@ -438,7 +428,7 @@ export default function AdminDashboard() {
     try {
       await deleteDoc(doc(db, "sheep", sheepId));
 
-      // سجل العملية
+      // سجل العملية للمدير
       await addActivityLog({
         userId: user?.uid || "admin",
         userEmail: user?.email || "admin",
@@ -794,9 +784,24 @@ export default function AdminDashboard() {
             <h1 className="text-3xl md:text-4xl font-semibold mb-2">لوحة تحكم الإدارة</h1>
             <p className="text-muted-foreground">إدارة شاملة للمنصة</p>
           </div>
-          <Button onClick={() => setAddImportedDialogOpen(true)} className="bg-primary">
-            إضافة أضحية مستوردة +
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={async () => {
+              await addNotification({
+                userId: user?.uid || "",
+                title: "إشعار تجريبي 🔔",
+                message: "هذا إشعار تجريبي للتأكد من عمل نظام التنبيهات بنجاح.",
+                type: "system",
+                link: "/admin",
+                isRead: false
+              });
+              toast({ title: "تم إرسال الإشعار", description: "سيظهر في جرس التنبيهات خلال لحظات." });
+            }} variant="outline" className="border-primary text-primary hover:bg-primary/5">
+              تجربة الإشعارات
+            </Button>
+            <Button onClick={() => setAddImportedDialogOpen(true)} className="bg-primary">
+              إضافة أضحية مستوردة +
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -1469,17 +1474,6 @@ export default function AdminDashboard() {
                                       مراجعة
                                     </Button>
                                   )}
-                                  {o.status === "confirmed" && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 text-xs bg-blue-500/5 hover:bg-blue-500/10 text-blue-600 border-blue-200"
-                                      onClick={() => handlePrintInvoice(o)}
-                                    >
-                                      <Printer className="ml-1 h-3.5 w-3.5" />
-                                      الفاتورة
-                                    </Button>
-                                  )}
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -2013,15 +2007,6 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
     </div>
-
-      {/* Printable Invoice Section */}
-      {printingOrder && (
-        <PrintInvoice 
-          order={printingOrder} 
-          type="admin" 
-          sellerData={users.find((u: User) => u.uid === printingOrder.sellerId)} 
-        />
-      )}
     </>
   );
 }
