@@ -7,12 +7,14 @@ import { Notification, ActivityLog } from "@shared/schema";
  */
 export async function addNotification(notification: Omit<Notification, "id" | "createdAt">) {
   try {
+    console.log("📝 Adding notification for user:", notification.userId, notification.title);
     const notificationsRef = collection(db, "notifications");
-    await addDoc(notificationsRef, {
+    const docRef = await addDoc(notificationsRef, {
       ...notification,
       isRead: false,
       createdAt: Date.now(),
     });
+    console.log("✅ Notification added with ID:", docRef.id);
   } catch (error) {
     console.error("Error adding notification:", error);
   }
@@ -23,11 +25,13 @@ export async function addNotification(notification: Omit<Notification, "id" | "c
  */
 export async function addActivityLog(log: Omit<ActivityLog, "id" | "createdAt">) {
   try {
+    console.log("📝 Adding activity log:", log.action);
     const logsRef = collection(db, "activityLogs");
-    await addDoc(logsRef, {
+    const docRef = await addDoc(logsRef, {
       ...log,
       createdAt: Date.now(),
     });
+    console.log("✅ Activity log added with ID:", docRef.id);
   } catch (error) {
     console.error("Error adding activity log:", error);
   }

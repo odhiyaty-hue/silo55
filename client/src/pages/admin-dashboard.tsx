@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import AdminPaymentTab from "@/components/admin-payment-tab";
 import PrintInvoice from "@/components/PrintInvoice";
+import { cn } from "@/lib/utils";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip as RechartsTooltip } from "recharts";
 import { 
   ChartContainer, 
@@ -129,13 +130,16 @@ export default function AdminDashboard() {
     fetchAllData();
     
     // Real-time logs
-    const q = query(collection(db, "activityLogs"), orderBy("createdAt", "desc"), limit(100));
+    const q = query(collection(db, "activityLogs"), limit(100));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const logsData = snapshot.docs.map(doc => ({
+      const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as ActivityLog[];
-      setLogs(logsData);
+      
+      // الترتيب برمجياً لتجنب مشكلة الفهارس المفقودة في Firestore
+      const sortedLogs = data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      setLogs(sortedLogs);
     });
 
     return () => unsubscribe();
@@ -397,7 +401,6 @@ export default function AdminDashboard() {
       toast({ title: "تم", description: `تم حذف ${deletedCount} طلب بنجاح.` });
       setSelectedOrderIds([]);
       fetchOrders();
-      fetchLogs(); // تحديث سجلات النشاط في الواجهة
     } catch (e: any) {
       toast({ title: "خطأ", description: e.message, variant: "destructive" });
     } finally {

@@ -40,8 +40,7 @@ export default function NotificationBell() {
     const q = query(
       collection(db, "notifications"),
       where("userId", "==", user.uid),
-      orderBy("createdAt", "desc"),
-      limit(20)
+      limit(50)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -49,7 +48,10 @@ export default function NotificationBell() {
         id: doc.id,
         ...doc.data()
       })) as Notification[];
-      setNotifications(data);
+      
+      // الترتيب برمجياً (Client-side) لضمان العمل دون الحاجة لفهارس مركبة
+      const sortedData = data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      setNotifications(sortedData);
     });
 
     return () => unsubscribe();
