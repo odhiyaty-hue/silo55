@@ -45,8 +45,8 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    if (!user || !user.uid) {
-      if (!user) setLocation("/login");
+    if (!user) {
+      setLocation("/login");
       return;
     }
 

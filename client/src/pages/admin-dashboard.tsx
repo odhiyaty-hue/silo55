@@ -1,6 +1,5 @@
 import Header from "@/components/Header";
-import * as React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { collection, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import AdminPaymentTab from "@/components/admin-payment-tab";
 import PrintInvoice from "@/components/PrintInvoice";
-import { cn } from "@/lib/utils";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip as RechartsTooltip } from "recharts";
 import { 
   ChartContainer, 
@@ -130,22 +128,11 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (selectedOrder) {
       const fetchReceipt = async () => {
-        try {
-          const orderId = (selectedOrder as any).id;
-          if (!orderId) {
-            setOrderReceipt(null);
-            return;
-          }
-          const q = query(collection(db, "cibReceipts"), where("orderId", "==", orderId));
-          const snapshot = await getDocs(q);
-          if (!snapshot.empty) {
-            const data = snapshot.docs[0].data() as CIBReceipt;
-            setOrderReceipt({ ...data, id: snapshot.docs[0].id });
-          } else {
-            setOrderReceipt(null);
-          }
-        } catch (error) {
-          console.error("Error fetching receipt:", error);
+        const q = query(collection(db, "cibReceipts"), where("orderId", "==", (selectedOrder as any).id));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          setOrderReceipt(snapshot.docs[0].data() as CIBReceipt);
+        } else {
           setOrderReceipt(null);
         }
       };
@@ -206,9 +193,8 @@ export default function AdminDashboard() {
   const handleReview = async (sheepId: string, approved: boolean, rejectionReason?: string) => {
     setReviewing(true);
     try {
-      const status = approved ? "approved" : "rejected";
       const updateData: any = {
-        status,
+        status: approved ? "approved" : "rejected",
         updatedAt: Date.now(),
       };
       
@@ -217,30 +203,6 @@ export default function AdminDashboard() {
       }
       
       await updateDoc(doc(db, "sheep", sheepId), updateData);
-
-      const s = sheep.find(item => item.id === sheepId);
-      if (s) {
-        // إرسال إشعار للبائع
-        await addNotification({
-          userId: s.sellerId,
-          title: approved ? "تم قبول عرضك ✅" : "تم رفض عرضك ❌",
-          message: approved 
-            ? `تهانينا! تمت الموافقة على عرض الأضحية الخاص بك وهو الآن متاح للجميع.` 
-            : `للأسف تم رفض عرضك لسبب: ${rejectionReason || "غير محدد"}`,
-          type: "sheep",
-          link: "/seller",
-          isRead: false
-        });
-
-        // سجل العملية للمدير
-        await addActivityLog({
-          userId: user?.uid || "admin",
-          userEmail: user?.email || "admin",
-          action: approved ? "APPROVE_SHEEP" : "REJECT_SHEEP",
-          details: `${approved ? "موافقة" : "رفض"} على الأضحية رقم ${sheepId} للبائع ${s.sellerEmail}`,
-          targetId: sheepId
-        });
-      }
 
       toast({
         title: approved ? "تم قبول الخروف" : "تم رفض الخروف",
@@ -288,9 +250,8 @@ export default function AdminDashboard() {
   const handleOrderReview = async (orderId: string, approved: boolean) => {
     setReviewing(true);
     try {
-      const status = approved ? "confirmed" : "rejected";
       await updateDoc(doc(db, "orders", orderId), {
-        status,
+        status: approved ? "confirmed" : "rejected",
         updatedAt: Date.now(),
       });
 
@@ -302,42 +263,6 @@ export default function AdminDashboard() {
             updatedAt: Date.now(),
           });
         }
-      }
-
-      const o = orders.find(item => item.id === orderId);
-      if (o) {
-        // إشعار للمشتري
-        await addNotification({
-          userId: o.buyerId,
-          title: approved ? "تم تأكيد طلبك 🎉" : "تم رفض طلبك ⚠️",
-          message: approved 
-            ? `تم تأكيد طلب الأضحية الخاص بك بنجاح. يمكنك المتابعة الآن.` 
-            : `نعتذر منك، تم رفض طلب الأضحية الخاص بك من قبل الإدارة.`,
-          type: "order",
-          link: "/orders",
-          isRead: false
-        });
-
-        // إشعار للبائع (إذا تم التأكيد)
-        if (approved) {
-          await addNotification({
-            userId: o.sellerId,
-            title: "طلب مؤكد جديد 🛒",
-            message: `تم تأكيد طلب شراء لأحد أضاحيك بمبلغ ${o.totalPrice.toLocaleString()} د.ج`,
-            type: "order",
-            link: "/seller",
-            isRead: false
-          });
-        }
-
-        // سجل العملية للمدير
-        await addActivityLog({
-          userId: user?.uid || "admin",
-          userEmail: user?.email || "admin",
-          action: approved ? "CONFIRM_ORDER" : "REJECT_ORDER",
-          details: `${approved ? "تأكيد" : "رفض"} الطلب رقم ${orderId} للمشتري ${o.buyerEmail}`,
-          targetId: orderId
-        });
       }
 
       toast({
@@ -370,16 +295,6 @@ export default function AdminDashboard() {
         await deleteDoc(doc(db, "orders", id));
         deletedCount++;
       }
-
-      // سجل العملية للمدير
-      await addActivityLog({
-        userId: user?.uid || "admin",
-        userEmail: user?.email || "admin",
-        action: "DELETE_ORDERS",
-        details: `قام المسؤول بحذف عدد ${deletedCount} طلب شراء من النظام`,
-        targetId: selectedOrderIds.join(", ").slice(0, 50) + (selectedOrderIds.length > 5 ? "..." : "")
-      });
-
       toast({ title: "تم", description: `تم حذف ${deletedCount} طلب بنجاح.` });
       setSelectedOrderIds([]);
       fetchOrders();
@@ -419,15 +334,6 @@ export default function AdminDashboard() {
     setReviewing(true);
     try {
       await deleteDoc(doc(db, "sheep", sheepId));
-
-      // سجل العملية للمدير
-      await addActivityLog({
-        userId: user?.uid || "admin",
-        userEmail: user?.email || "admin",
-        action: "DELETE_SHEEP",
-        details: `قام المسؤول بحذف الأضحية رقم ${sheepId}`,
-        targetId: sheepId
-      });
 
       toast({
         title: "تم حذف العرض",
@@ -675,16 +581,6 @@ export default function AdminDashboard() {
         role: newRole,
         updatedAt: Date.now(),
       });
-
-      // سجل العملية للمدير
-      await addActivityLog({
-        userId: user?.uid || "admin",
-        userEmail: user?.email || "admin",
-        action: "UPDATE_USER_ROLE",
-        details: `تغيير رتبة المستخدم ${users.find(u => u.uid === userUid)?.email} إلى ${getRoleLabel(newRole)}`,
-        targetId: userUid
-      });
-
       toast({
         title: "تم تحديث الرتبة",
         description: `تم تغيير رتبة المستخدم بنجاح إلى ${getRoleLabel(newRole)}`,
@@ -723,27 +619,6 @@ export default function AdminDashboard() {
       }
 
       await updateDoc(doc(db, "users", selectedUserVIP.uid), updateData);
-
-      // إشعار للمستخدم
-      if (vipStatus !== "none") {
-        await addNotification({
-          userId: selectedUserVIP.uid,
-          title: "تم تحديث حالة VIP 🌟",
-          message: `تمت ترقية حسابك إلى باقة VIP (${VIP_PACKAGES[vipStatus as keyof typeof VIP_PACKAGES]?.nameAr || vipStatus}). استمتع بالميزات الحصرية!`,
-          type: "vip",
-          link: "/vip-packages",
-          isRead: false
-        });
-      }
-
-      // سجل العملية للمدير
-      await addActivityLog({
-        userId: user?.uid || "admin",
-        userEmail: user?.email || "admin",
-        action: "UPDATE_USER_VIP",
-        details: `تحديث حالة VIP للمستخدم ${selectedUserVIP.email} إلى ${vipStatus}`,
-        targetId: selectedUserVIP.uid
-      });
 
       toast({
         title: "تم التحديث بنجاح",
@@ -985,6 +860,8 @@ export default function AdminDashboard() {
               </motion.div>
             </AnimatePresence>
           </TabsContent>
+
+          {/* VIP Management Tab (Removed - Integrated into Users Detail) */}
 
           {/* Pending Reviews Tab */}
           <TabsContent value="pending">
@@ -1435,15 +1312,6 @@ export default function AdminDashboard() {
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 text-xs border-primary/20 text-primary hover:bg-primary/5"
-                                      onClick={() => handlePrintInvoice(o)}
-                                    >
-                                      <Printer className="ml-1 h-3 w-3" />
-                                      الفاتورة
-                                    </Button>
                                   {(!o.status || o.status === "pending") && (
                                     <Button
                                       size="sm"
@@ -1452,6 +1320,17 @@ export default function AdminDashboard() {
                                       onClick={() => setSelectedOrder(o)}
                                     >
                                       مراجعة
+                                    </Button>
+                                  )}
+                                  {o.status === "confirmed" && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 text-xs bg-blue-500/5 hover:bg-blue-500/10 text-blue-600 border-blue-200"
+                                      onClick={() => handlePrintInvoice(o)}
+                                    >
+                                      <Printer className="ml-1 h-3.5 w-3.5" />
+                                      الفاتورة
                                     </Button>
                                   )}
                                   </div>
@@ -1545,6 +1424,7 @@ export default function AdminDashboard() {
               </Card>
             </motion.div>
           </TabsContent>
+
         </Tabs>
       </div>
 
@@ -1554,10 +1434,13 @@ export default function AdminDashboard() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>تفاصيل وإدارة المستخدم</DialogTitle>
-              <DialogDescription>{selectedUserVIP.email}</DialogDescription>
+              <DialogDescription>
+                {selectedUserVIP.email}
+              </DialogDescription>
             </DialogHeader>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* User Details Section */}
               <div className="space-y-4">
                 <h3 className="font-bold border-b pb-2">تفاصيل التواصل والعنوان</h3>
                 <div className="space-y-2 text-sm text-right">
@@ -1588,9 +1471,13 @@ export default function AdminDashboard() {
                     </Select>
                     {updatingRole && <Loader2 className="h-4 w-4 animate-spin mt-2" />}
                   </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    * سيتم منح المستخدم صلاحيات الرتبة الجديدة فور الحفظ.
+                  </p>
                 </div>
               </div>
 
+              {/* VIP Management Section */}
               <div className="space-y-4 bg-muted/30 p-4 rounded-lg border">
                 <h3 className="font-bold flex items-center gap-2 border-b pb-2">
                   <Crown className="h-4 w-4 text-amber-500" />
@@ -1916,10 +1803,16 @@ export default function AdminDashboard() {
           </form>
         </DialogContent>
       </Dialog>
-      {printingOrder && (
-        <PrintInvoice order={printingOrder} />
-      )}
     </div>
+
+      {/* Printable Invoice Section */}
+      {printingOrder && (
+        <PrintInvoice 
+          order={printingOrder} 
+          type="admin" 
+          sellerData={users.find((u: User) => u.uid === printingOrder.sellerId)} 
+        />
+      )}
     </>
   );
 }

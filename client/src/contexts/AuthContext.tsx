@@ -24,10 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
       if (userDoc.exists()) {
-        const userData = userDoc.data() as User;
-        // دمج UID يدوياً لأنه قد لا يكون مخزناً داخل المستند نفسه
-        setUser({ ...userData, uid: firebaseUser.uid });
-        console.log("👤 User initialized with UID:", firebaseUser.uid);
+        setUser(userDoc.data() as User);
       } else {
         setUser(null);
       }

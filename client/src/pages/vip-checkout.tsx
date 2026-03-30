@@ -11,9 +11,7 @@ import { addDoc, collection, updateDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { uploadToImgBB } from "@/lib/imgbb";
-import { VIP_PACKAGES, VIPPackage, User } from "@shared/schema";
-import { addNotification } from "@/lib/activity";
-import { getDocs, query, where } from "firebase/firestore";
+import { VIP_PACKAGES, VIPPackage } from "@shared/schema";
 
 export default function VIPCheckout() {
   const { user, refreshUser } = useAuth();
@@ -108,26 +106,6 @@ export default function VIPCheckout() {
           createdAt: Date.now(),
           updatedAt: Date.now(),
         });
-      }
-
-      // إشعار للمشرفين عن طلب VIP جديد
-      try {
-        const pkg = VIP_PACKAGES[vipPackage];
-        const adminsQuery = query(collection(db, "users"), where("role", "==", "admin"));
-        const adminsSnapshot = await getDocs(adminsQuery);
-        const adminPromises = adminsSnapshot.docs.map(adminDoc => 
-          addNotification({
-            userId: adminDoc.id,
-            title: "طلب ترقية VIP جديد ✨",
-            message: `قام المستخدم ${user.email} بطلب ترقية لباقة ${pkg.nameAr} بمبلغ ${amount.toLocaleString()} د.ج (طريقة الدفع: ${paymentMethod === "card" ? "تحويل بنكي" : "نقد"})`,
-            type: "vip",
-            link: "/admin",
-            isRead: false
-          })
-        );
-        await Promise.all(adminPromises);
-      } catch (err) {
-        console.error("Error notifying admins about VIP upgrade:", err);
       }
 
       // إذا كان التحويل البنكي، يتم التفعيل بعد التحقق من قبل الإدارة
