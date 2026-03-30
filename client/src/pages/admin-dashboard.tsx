@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { collection, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, addDoc } from "firebase/firestore";
+import { collection, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, addDoc, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Sheep, Order, User, VIPStatus, VIP_PACKAGES, CIBReceipt, Notification, ActivityLog } from "@shared/schema";
@@ -147,11 +147,22 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (selectedOrder) {
       const fetchReceipt = async () => {
-        const q = query(collection(db, "cibReceipts"), where("orderId", "==", (selectedOrder as any).id));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-          setOrderReceipt(snapshot.docs[0].data() as CIBReceipt);
-        } else {
+        try {
+          const orderId = (selectedOrder as any).id;
+          if (!orderId) {
+            setOrderReceipt(null);
+            return;
+          }
+          const q = query(collection(db, "cibReceipts"), where("orderId", "==", orderId));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            const data = snapshot.docs[0].data() as CIBReceipt;
+            setOrderReceipt({ ...data, id: snapshot.docs[0].id });
+          } else {
+            setOrderReceipt(null);
+          }
+        } catch (error) {
+          console.error("Error fetching receipt:", error);
           setOrderReceipt(null);
         }
       };

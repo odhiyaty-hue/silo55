@@ -35,7 +35,7 @@ export default function NotificationBell() {
   const [open, setOpen] = React.useState(false);
 
   React.useEffect(() => {
-    if (!user) return;
+    if (!user || !user.uid) return;
 
     const q = query(
       collection(db, "notifications"),

@@ -107,6 +107,7 @@ export default function SellerDashboard() {
     
     setLoading(true);
     try {
+      if (!user.uid) return;
       const sheepQuery = query(
         collection(db, "sheep"),
         where("sellerId", "==", user.uid)
@@ -128,6 +129,7 @@ export default function SellerDashboard() {
 
   const handlePrintInvoiceBySheepId = async (sheepId: string) => {
     try {
+      if (!sheepId) return;
       const ordersQuery = query(
         collection(db, "orders"),
         where("sheepId", "==", sheepId)
