@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { collection, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, addDoc, limit } from "firebase/firestore";
+import { collection, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, addDoc, limit, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Sheep, Order, User, VIPStatus, VIP_PACKAGES, CIBReceipt, Notification, ActivityLog } from "@shared/schema";
