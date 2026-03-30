@@ -108,6 +108,8 @@ export default function VIPCheckout() {
           createdAt: Date.now(),
           updatedAt: Date.now(),
         });
+      }
+
       // إشعار للمشرفين عن طلب VIP جديد
       try {
         const pkg = VIP_PACKAGES[vipPackage];
