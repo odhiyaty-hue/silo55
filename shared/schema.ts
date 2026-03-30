@@ -96,6 +96,7 @@ export interface User {
   rewardPoints?: number; // نقاط المكافآت
   createdAt: number;
   updatedAt?: number;
+  isGuest?: boolean;
 }
 
 export const insertUserSchema = z.object({
