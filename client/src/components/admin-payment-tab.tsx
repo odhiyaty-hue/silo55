@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs, updateDoc, doc, query, where, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, updateDoc, doc, getDoc, query, where, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { CIBReceipt, Payment, VIP_PACKAGES } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -84,17 +84,12 @@ export default function AdminPaymentTab() {
     try {
       console.log("🔍 Verifying receipt:", selectedReceipt.id);
       
-      // 1. Update Receipt Status
-      const receiptRef = doc(db, "cibReceipts", selectedReceipt.id);
-      await updateDoc(receiptRef, {
-        status: "verified",
-        verifiedBy: user?.email || "admin",
-        verifiedAt: Date.now(),
-        updatedAt: Date.now(),
-      });
-      console.log("✅ Receipt marked as verified");
+      // Check for user ID
+      if (!selectedReceipt.userId) {
+        throw new Error("لم يتم العثور على معرّف المستخدم في الإيصال");
+      }
 
-      // 2. Handle VIP Upgrade if applicable
+      // 1. Handle VIP Upgrade if applicable
       if (selectedReceipt.vipUpgrade) {
         console.log("👑 Handling VIP upgrade for user:", selectedReceipt.userId);
         
@@ -105,11 +100,19 @@ export default function AdminPaymentTab() {
           throw new Error(`باقة VIP غير صالحة: ${vipPackage}`);
         }
 
+        // Verify user exists before updating
+        const userRef = doc(db, "users", selectedReceipt.userId);
+        const userDoc = await getDoc(userRef);
+        
+        if (!userDoc.exists()) {
+          console.error("❌ User document not found for UID:", selectedReceipt.userId);
+          throw new Error(`حساب المستخدم غير موجود (UID: ${selectedReceipt.userId}). يرجى التأكد من أن المستخدم قد أكمل تسجيله.`);
+        }
+
         // Calculate expiration date: Now + duration (in days)
         const expiresAt = Date.now() + (pkg.duration * 24 * 60 * 60 * 1000);
 
-        // Verify user exists before updating
-        const userRef = doc(db, "users", selectedReceipt.userId);
+        console.log("📝 Updating user document...");
         await updateDoc(userRef, {
           vipStatus: vipPackage as any,
           vipPackage: vipPackage as any,
@@ -118,9 +121,9 @@ export default function AdminPaymentTab() {
           rewardPoints: 100, // Small welcome bonus
           updatedAt: Date.now(),
         });
-        console.log("✅ User VIP status updated");
+        console.log("✅ User VIP status updated successfully");
 
-        // 3. Update the associated payment record
+        // 2. Update the associated payment record
         if (selectedReceipt.paymentId) {
           console.log("💰 Updating payment status...");
           await updateDoc(doc(db, "payments", selectedReceipt.paymentId), {
@@ -130,12 +133,30 @@ export default function AdminPaymentTab() {
           console.log("✅ Payment marked as completed");
         }
 
+        // 3. Mark Receipt as Verified (Last step for full success)
+        const receiptRef = doc(db, "cibReceipts", selectedReceipt.id);
+        await updateDoc(receiptRef, {
+          status: "verified",
+          verifiedBy: user?.email || "admin",
+          verifiedAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+        console.log("✅ Receipt marked as verified");
+
         toast({
-          title: "تم التحقق من الوصل",
-          description: `تم تفعيل باقة ${pkg.nameAr} بنجاح. تنتهي في ${new Date(expiresAt).toLocaleDateString("ar-DZ")}`,
+          title: "تم التحقق وتفعيل الباقة",
+          description: `تم تفعيل باقة ${pkg.nameAr} بنجاح لـ ${selectedReceipt.userEmail}. تنتهي في ${new Date(expiresAt).toLocaleDateString("ar-DZ")}`,
         });
       } else {
         // Normal payment (order)
+        const receiptRef = doc(db, "cibReceipts", selectedReceipt.id);
+        await updateDoc(receiptRef, {
+          status: "verified",
+          verifiedBy: user?.email || "admin",
+          verifiedAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+
         if (selectedReceipt.paymentId) {
           await updateDoc(doc(db, "payments", selectedReceipt.paymentId), {
             status: "completed",
@@ -147,14 +168,13 @@ export default function AdminPaymentTab() {
           description: "تم تأكيد الوصل بنجاح.",
         });
       }
-      
-      
+
       setSelectedReceipt(null);
       fetchPaymentData();
     } catch (error: any) {
       console.error("🔥 Error verifying receipt:", error);
       toast({
-        title: "خطأ أثناء مراجعة الدفع",
+        title: "فشل في تأكيد الدفع",
         description: error.message || "فشل التحقق من الوصل، يرجى التأكد من بيانات المستخدم والمحاولة لاحقاً",
         variant: "destructive",
       });
