@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { CheckCircle, XCircle, Clock, Loader2, Eye, Trash2, ShieldCheck, CreditCard, Crown } from "lucide-react";
 import {
   Dialog,
@@ -29,6 +30,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 export default function AdminPaymentTab() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [cibReceipts, setCIBReceipts] = useState<CIBReceipt[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,8 +147,8 @@ export default function AdminPaymentTab() {
           description: "تم تأكيد الوصل بنجاح.",
         });
       }
-
-      setReviewDialogOpen(false);
+      
+      
       setSelectedReceipt(null);
       fetchPaymentData();
     } catch (error: any) {
