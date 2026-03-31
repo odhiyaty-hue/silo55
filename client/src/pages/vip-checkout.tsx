@@ -66,56 +66,65 @@ export default function VIPCheckout() {
 
     setProcessing(true);
     try {
-      let receiptUrl = "";
+      console.log("💳 Starting payment processing for package:", vipPackage);
       
+      let receiptUrl = "";
       if (paymentMethod === "card" && receiptFile) {
+        console.log("📤 Uploading receipt...");
         receiptUrl = await uploadToImgBB(receiptFile);
+        console.log("✅ Receipt uploaded:", receiptUrl);
       }
 
-      if (!vipPackage) return;
+      if (!vipPackage) {
+        throw new Error("باقة VIP غير محددة");
+      }
       
       const pkg = VIP_PACKAGES[vipPackage];
-      const expiresAt = Date.now() + pkg.duration * 24 * 60 * 60 * 1000;
+      const expiresAt = Date.now() + (pkg?.duration || 30) * 24 * 60 * 60 * 1000;
       
-      const paymentData = {
+      // Clean data for Firestore (remove undefined)
+      const paymentData: any = {
         userId: user.uid,
-        userEmail: user.email,
-        amount: amount,
+        userEmail: user.email || "",
+        amount: Number(amount) || 0,
         method: paymentMethod,
-        status: paymentMethod === "cash" ? "pending" : "pending",
-        orderId: undefined,
+        status: "pending",
         vipUpgrade: true,
         vipPackage: vipPackage,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
 
+      console.log("📝 Creating payment record...");
       const paymentRef = await addDoc(collection(db, "payments"), paymentData);
+      console.log("✅ Payment record created:", paymentRef.id);
 
       if (paymentMethod === "card") {
+        console.log("📝 Creating CIB receipt record...");
         await addDoc(collection(db, "cibReceipts"), {
           paymentId: paymentRef.id,
           userId: user.uid,
-          userEmail: user.email,
+          userEmail: user.email || "",
           receiptImageUrl: receiptUrl,
-          amount: amount,
-          orderId: undefined,
+          amount: Number(amount) || 0,
           vipUpgrade: true,
           vipPackage: vipPackage,
           status: "pending",
           createdAt: Date.now(),
           updatedAt: Date.now(),
         });
+        console.log("✅ CIB receipt record created");
       }
 
-      // إذا كان التحويل البنكي، يتم التفعيل بعد التحقق من قبل الإدارة
+      // 3. Activation or Confirmation
       if (paymentMethod === "card") {
         toast({
           title: "تم استلام الوصل",
           description: "سيتم تفعيل VIP الخاص بك خلال ساعات بعد التحقق من الوصل",
         });
       } else {
-        // للدفع النقدي، يتم التفعيل مباشرة
+        console.log("✨ Activating cash VIP directly...");
+        // For cash, activate directly if allowed by rules
         await updateDoc(doc(db, "users", user.uid), {
           vipStatus: vipPackage,
           vipPackage: vipPackage,
@@ -125,6 +134,7 @@ export default function VIPCheckout() {
           updatedAt: Date.now(),
         });
         await refreshUser();
+        console.log("✅ VIP activated");
         toast({
           title: "مبروك!",
           description: `تم تفعيل باقة ${pkg.nameAr} بنجاح حتى ${new Date(expiresAt).toLocaleDateString("ar-DZ")}`,
@@ -133,13 +143,15 @@ export default function VIPCheckout() {
 
       localStorage.removeItem("pendingVIPUpgrade");
       localStorage.removeItem("vipAmount");
+      // Also remove vipPackage to avoid stale state
+      localStorage.removeItem("vipPackage");
 
       setLocation(user?.role === "seller" ? "/seller" : "/browse");
-    } catch (error) {
-      console.error("Payment error:", error);
+    } catch (error: any) {
+      console.error("🔥 Payment error:", error);
       toast({
         title: "خطأ في الدفع",
-        description: "حدث خطأ أثناء معالجة الدفع",
+        description: error.message || "حدث خطأ أثناء معالجة الدفع، يرجى المحاولة لاحقاً",
         variant: "destructive",
       });
     } finally {

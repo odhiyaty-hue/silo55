@@ -80,22 +80,35 @@ export default function AdminPaymentTab() {
     if (!selectedReceipt) return;
     setProcessing(true);
     try {
+      console.log("🔍 Verifying receipt:", selectedReceipt.id);
+      
       // 1. Update Receipt Status
-      await updateDoc(doc(db, "cibReceipts", selectedReceipt.id), {
+      const receiptRef = doc(db, "cibReceipts", selectedReceipt.id);
+      await updateDoc(receiptRef, {
         status: "verified",
-        verifiedBy: "admin",
+        verifiedBy: user?.email || "admin",
         verifiedAt: Date.now(),
         updatedAt: Date.now(),
       });
+      console.log("✅ Receipt marked as verified");
 
       // 2. Handle VIP Upgrade if applicable
       if (selectedReceipt.vipUpgrade) {
+        console.log("👑 Handling VIP upgrade for user:", selectedReceipt.userId);
+        
         const vipPackage = selectedReceipt.vipPackage || "silver";
         const pkg = VIP_PACKAGES[vipPackage as keyof typeof VIP_PACKAGES];
+        
+        if (!pkg) {
+          throw new Error(`باقة VIP غير صالحة: ${vipPackage}`);
+        }
+
         // Calculate expiration date: Now + duration (in days)
         const expiresAt = Date.now() + (pkg.duration * 24 * 60 * 60 * 1000);
 
-        await updateDoc(doc(db, "users", selectedReceipt.userId), {
+        // Verify user exists before updating
+        const userRef = doc(db, "users", selectedReceipt.userId);
+        await updateDoc(userRef, {
           vipStatus: vipPackage as any,
           vipPackage: vipPackage as any,
           vipUpgradedAt: Date.now(),
@@ -103,25 +116,44 @@ export default function AdminPaymentTab() {
           rewardPoints: 100, // Small welcome bonus
           updatedAt: Date.now(),
         });
+        console.log("✅ User VIP status updated");
+
+        // 3. Update the associated payment record
+        if (selectedReceipt.paymentId) {
+          console.log("💰 Updating payment status...");
+          await updateDoc(doc(db, "payments", selectedReceipt.paymentId), {
+            status: "completed",
+            updatedAt: Date.now(),
+          });
+          console.log("✅ Payment marked as completed");
+        }
 
         toast({
           title: "تم التحقق من الوصل",
           description: `تم تفعيل باقة ${pkg.nameAr} بنجاح. تنتهي في ${new Date(expiresAt).toLocaleDateString("ar-DZ")}`,
         });
       } else {
+        // Normal payment (order)
+        if (selectedReceipt.paymentId) {
+          await updateDoc(doc(db, "payments", selectedReceipt.paymentId), {
+            status: "completed",
+            updatedAt: Date.now(),
+          });
+        }
         toast({
-          title: "تم التحقق من الوصل",
-          description: "تم توثيق الدفع بنجاح",
+          title: "تم التحقق",
+          description: "تم تأكيد الوصل بنجاح.",
         });
       }
 
+      setReviewDialogOpen(false);
       setSelectedReceipt(null);
       fetchPaymentData();
-    } catch (error) {
-      console.error("Error verifying receipt:", error);
+    } catch (error: any) {
+      console.error("🔥 Error verifying receipt:", error);
       toast({
-        title: "خطأ",
-        description: "فشل التحقق من الوصل",
+        title: "خطأ أثناء مراجعة الدفع",
+        description: error.message || "فشل التحقق من الوصل، يرجى التأكد من بيانات المستخدم والمحاولة لاحقاً",
         variant: "destructive",
       });
     } finally {
