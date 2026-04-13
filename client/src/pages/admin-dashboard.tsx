@@ -1045,7 +1045,7 @@ export default function AdminDashboard() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex flex-wrap gap-2">
-                                  {s.status === "approved" && (
+                                  {(s.status === "approved" || s.status === "rejected") && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
