@@ -348,7 +348,7 @@ export default function BrowseSheep() {
                   <Card>
                     <CardContent className="p-12 text-center">
                       <p className="text-lg text-muted-foreground mb-4">
-                        لا توجد أغنام مستوردة متاحة حالياً تطابق بحثك
+                        في انتضار تصريح وزارة الفلاحة
                       </p>
                       <Button onClick={clearFilters} variant="outline" data-testid="button-clear-filters-empty-imported">
                         مسح الفلاتر
