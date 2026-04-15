@@ -646,12 +646,12 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8">
         {/* Page Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-semibold mb-2">لوحة تحكم الإدارة</h1>
-            <p className="text-muted-foreground">إدارة شاملة للمنصة</p>
+            <h1 className="text-2xl md:text-4xl font-semibold mb-1">لوحة تحكم الإدارة</h1>
+            <p className="text-muted-foreground text-sm">إدارة شاملة للمنصة</p>
           </div>
-          <Button onClick={() => setAddImportedDialogOpen(true)} className="bg-primary">
+          <Button onClick={() => setAddImportedDialogOpen(true)} className="bg-primary shrink-0 w-full sm:w-auto">
             إضافة أضحية مستوردة +
           </Button>
         </div>
@@ -996,7 +996,8 @@ export default function AdminDashboard() {
                         </Select>
                       </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-0 sm:p-6">
+                      <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-muted/30">
@@ -1072,6 +1073,7 @@ export default function AdminDashboard() {
                           ))}
                         </TableBody>
                       </Table>
+                      </div>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -1141,25 +1143,26 @@ export default function AdminDashboard() {
                         </Select>
                       </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-0 sm:p-6">
+                      <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-muted/30">
-                            <TableHead>البريد الإلكتروني</TableHead>
-                            <TableHead>الاسم</TableHead>
+                            <TableHead className="min-w-[160px]">البريد الإلكتروني</TableHead>
+                            <TableHead className="min-w-[100px]">الاسم</TableHead>
                             <TableHead>الدور</TableHead>
                             <TableHead>المدينة</TableHead>
-                            <TableHead>تاريخ التسجيل</TableHead>
+                            <TableHead className="min-w-[110px]">تاريخ التسجيل</TableHead>
                             <TableHead>الإجراءات</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {filteredUsers.map((u: User) => (
                             <TableRow key={u.uid} className="hover:bg-muted/10 transition-colors">
-                              <TableCell className="font-medium">{u.email}</TableCell>
-                              <TableCell>{u.fullName || "-"}</TableCell>
+                              <TableCell className="font-medium text-xs">{u.email}</TableCell>
+                              <TableCell className="text-sm">{u.fullName || "-"}</TableCell>
                               <TableCell>{getRoleBadge(u.role)}</TableCell>
-                              <TableCell>{u.city || "-"}</TableCell>
+                              <TableCell className="text-sm">{u.city || "-"}</TableCell>
                               <TableCell className="text-sm text-muted-foreground">
                                 {formatGregorianDate(u.createdAt)}
                               </TableCell>
@@ -1167,7 +1170,7 @@ export default function AdminDashboard() {
                                 <Button 
                                   variant="outline" 
                                   size="sm"
-                                  className="h-8 text-xs"
+                                  className="h-8 text-xs whitespace-nowrap"
                                   onClick={() => {
                                     setSelectedUserVIP(u);
                                     setVipStatus(u.vipStatus || "none");
@@ -1181,6 +1184,7 @@ export default function AdminDashboard() {
                           ))}
                         </TableBody>
                       </Table>
+                      </div>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -1265,6 +1269,7 @@ export default function AdminDashboard() {
                           </CardContent>
                         </Card>
                       ) : (
+                        <div className="overflow-x-auto">
                         <Table>
                           <TableHeader>
                             <TableRow className="bg-muted/30">
@@ -1274,11 +1279,11 @@ export default function AdminDashboard() {
                                   onCheckedChange={handleSelectAllOrders}
                                 />
                               </TableHead>
-                              <TableHead>المشتري</TableHead>
-                              <TableHead>البائع</TableHead>
+                              <TableHead className="min-w-[130px]">المشتري</TableHead>
+                              <TableHead className="min-w-[130px]">البائع</TableHead>
                               <TableHead>السعر</TableHead>
                               <TableHead>الحالة</TableHead>
-                              <TableHead>التاريخ</TableHead>
+                              <TableHead className="min-w-[100px]">التاريخ</TableHead>
                               <TableHead>الإجراءات</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -1339,6 +1344,7 @@ export default function AdminDashboard() {
                             ))}
                           </TableBody>
                         </Table>
+                        </div>
                       )}
                     </CardContent>
                   </Card>
@@ -1397,15 +1403,16 @@ export default function AdminDashboard() {
                   </CardTitle>
                   <CardDescription>أحدث عمليات البيع المؤكدة في النظام</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-0 sm:p-6">
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="text-right">رقم الطلب</TableHead>
                         <TableHead className="text-right">المبلغ</TableHead>
-                        <TableHead className="text-right">المشتري</TableHead>
-                        <TableHead className="text-right">البائع</TableHead>
-                        <TableHead className="text-right">التاريخ</TableHead>
+                        <TableHead className="text-right min-w-[130px]">المشتري</TableHead>
+                        <TableHead className="text-right min-w-[130px]">البائع</TableHead>
+                        <TableHead className="text-right min-w-[100px]">التاريخ</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1420,6 +1427,7 @@ export default function AdminDashboard() {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -1431,7 +1439,7 @@ export default function AdminDashboard() {
       {/* User Management Dialog */}
       {selectedUserVIP && (
         <Dialog open={!!selectedUserVIP} onOpenChange={() => setSelectedUserVIP(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>تفاصيل وإدارة المستخدم</DialogTitle>
               <DialogDescription>
@@ -1543,7 +1551,7 @@ export default function AdminDashboard() {
       {/* Order Review Dialog */}
       {selectedOrder && (
         <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>مراجعة الطلب</DialogTitle>
               <DialogDescription>
@@ -1634,7 +1642,7 @@ export default function AdminDashboard() {
       {/* Sheep Review Dialog */}
       {selectedSheep && (
         <Dialog open={!!selectedSheep} onOpenChange={() => { setSelectedSheep(null); setRejectionReason(""); }}>
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>مراجعة الخروف</DialogTitle>
               <DialogDescription>
@@ -1718,7 +1726,7 @@ export default function AdminDashboard() {
 
       {/* Add Imported Sheep Dialog */}
       <Dialog open={addImportedDialogOpen} onOpenChange={setAddImportedDialogOpen}>
-        <DialogContent className="max-w-md" dir="rtl">
+        <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle>إضافة أضحية مستوردة</DialogTitle>
           </DialogHeader>
