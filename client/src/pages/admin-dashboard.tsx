@@ -1,5 +1,5 @@
 import Header from "@/components/Header";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { collection, query, getDocs, doc, updateDoc, deleteDoc, where, orderBy, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -110,6 +110,21 @@ export default function AdminDashboard() {
   const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
   const [userVipFilter, setUserVipFilter] = useState<string>("all");
   const [updatingRole, setUpdatingRole] = useState(false);
+  const [activeChartIndex, setActiveChartIndex] = useState(0);
+  const chartScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleChartScroll = useCallback(() => {
+    const el = chartScrollRef.current;
+    if (!el) return;
+    const index = Math.round(el.scrollLeft / el.offsetWidth);
+    setActiveChartIndex(index);
+  }, []);
+
+  const scrollToChart = (index: number) => {
+    const el = chartScrollRef.current;
+    if (!el) return;
+    el.scrollTo({ left: index * el.offsetWidth, behavior: "smooth" });
+  };
 
   // Helper function to format date as Gregorian (Miladi)
   const formatGregorianDate = (date: any) => {
@@ -656,165 +671,132 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {loading ? (
-            <>
-              <Card className="p-6 h-[400px] flex flex-col items-center justify-center space-y-4">
-                <Skeleton className="h-48 w-48 rounded-full" />
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-48" />
-              </Card>
-              <Card className="p-6 h-[400px] flex flex-col items-center justify-center space-y-4">
-                <Skeleton className="h-48 w-48 rounded-full" />
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-48" />
-              </Card>
-              <Card className="p-6 h-[400px] flex flex-col items-center justify-center space-y-4">
-                <Skeleton className="h-48 w-48 rounded-full" />
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-48" />
-              </Card>
-            </>
-          ) : (
-            <>
-          {/* Sheep Stats Chart */}
-          <Card className="flex flex-col hover:shadow-md transition-shadow">
-            <CardHeader className="items-center pb-0">
-              <CardTitle>الأضاحي</CardTitle>
-              <CardDescription>توزيع حالة الأضاحي في المنصة</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 pb-0">
-              <ChartContainer
-                config={sheepChartConfig}
-                className="mx-auto aspect-square max-h-64"
-              >
-                <PieChart>
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent hideLabel />}
-                  />
-                  <Pie
-                    data={sheepStatsData}
-                    dataKey="count"
-                    nameKey="status"
-                    innerRadius={60}
-                    strokeWidth={5}
-                  >
-                    {sheepStatsData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ChartContainer>
-            </CardContent>
-            <div className="flex flex-wrap gap-2 justify-center pb-4 px-4">
-              {sheepStatsData.map((s) => (
-                <button
-                  key={s.status}
-                  className="flex items-center gap-1 hover:bg-muted/50 p-1.5 rounded-md transition-colors cursor-pointer border border-transparent hover:border-border group"
-                  onClick={() => handleStatClick('sheep', s.status)}
-                >
-                  <div className="h-3 w-3 rounded-full" style={{ background: (sheepChartConfig[s.status as keyof typeof sheepChartConfig] as any)?.color }} />
-                  <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
-                    {(sheepChartConfig[s.status as keyof typeof sheepChartConfig] as any)?.label}: {s.count}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </Card>
+        {/* Charts — carousel on mobile, grid on desktop */}
+        <div className="mb-8">
+          <div
+            ref={chartScrollRef}
+            onScroll={handleChartScroll}
+            className="flex md:grid md:grid-cols-3 overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none gap-0 md:gap-6 scrollbar-hide"
+            dir="ltr"
+          >
+            {loading ? (
+              <>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex-none w-full md:w-auto snap-center px-1 md:px-0">
+                    <Card className="p-6 h-[400px] flex flex-col items-center justify-center space-y-4">
+                      <Skeleton className="h-48 w-48 rounded-full" />
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-48" />
+                    </Card>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <>
+                {/* Sheep Stats Chart */}
+                <div className="flex-none w-full md:w-auto snap-center px-1 md:px-0" dir="rtl">
+                  <Card className="flex flex-col hover:shadow-md transition-shadow h-full">
+                    <CardHeader className="items-center pb-0">
+                      <CardTitle>الأضاحي</CardTitle>
+                      <CardDescription>توزيع حالة الأضاحي في المنصة</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-1 pb-0">
+                      <ChartContainer config={sheepChartConfig} className="mx-auto aspect-square max-h-64">
+                        <PieChart>
+                          <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                          <Pie data={sheepStatsData} dataKey="count" nameKey="status" innerRadius={60} strokeWidth={5}>
+                            {sheepStatsData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ChartContainer>
+                    </CardContent>
+                    <div className="flex flex-wrap gap-2 justify-center pb-4 px-4">
+                      {sheepStatsData.map((s) => (
+                        <button key={s.status} className="flex items-center gap-1 hover:bg-muted/50 p-1.5 rounded-md transition-colors cursor-pointer border border-transparent hover:border-border group" onClick={() => handleStatClick('sheep', s.status)}>
+                          <div className="h-3 w-3 rounded-full" style={{ background: (sheepChartConfig[s.status as keyof typeof sheepChartConfig] as any)?.color }} />
+                          <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">{(sheepChartConfig[s.status as keyof typeof sheepChartConfig] as any)?.label}: {s.count}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </Card>
+                </div>
 
-          {/* Orders Stats Chart */}
-          <Card className="flex flex-col">
-            <CardHeader className="items-center pb-0">
-              <CardTitle>الطلبات</CardTitle>
-              <CardDescription>توزيع حالة الطلبات الحالية</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 pb-0">
-              <ChartContainer
-                config={orderChartConfig}
-                className="mx-auto aspect-square max-h-64"
-              >
-                <PieChart>
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent hideLabel />}
-                  />
-                  <Pie
-                    data={orderStatsData}
-                    dataKey="count"
-                    nameKey="status"
-                    innerRadius={60}
-                    strokeWidth={5}
-                  >
-                    {orderStatsData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ChartContainer>
-            </CardContent>
-            <div className="flex flex-wrap gap-2 justify-center pb-4 px-4">
-              {orderStatsData.map((o) => (
-                <button
-                  key={o.status}
-                  className="flex items-center gap-1 hover:bg-muted/50 p-1.5 rounded-md transition-colors cursor-pointer border border-transparent hover:border-border group"
-                  onClick={() => handleStatClick('order', o.status)}
-                >
-                  <div className="h-3 w-3 rounded-full" style={{ background: (orderChartConfig[o.status as keyof typeof orderChartConfig] as any)?.color }} />
-                  <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
-                    {(orderChartConfig[o.status as keyof typeof orderChartConfig] as any)?.label}: {o.count}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </Card>
+                {/* Orders Stats Chart */}
+                <div className="flex-none w-full md:w-auto snap-center px-1 md:px-0" dir="rtl">
+                  <Card className="flex flex-col h-full">
+                    <CardHeader className="items-center pb-0">
+                      <CardTitle>الطلبات</CardTitle>
+                      <CardDescription>توزيع حالة الطلبات الحالية</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-1 pb-0">
+                      <ChartContainer config={orderChartConfig} className="mx-auto aspect-square max-h-64">
+                        <PieChart>
+                          <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                          <Pie data={orderStatsData} dataKey="count" nameKey="status" innerRadius={60} strokeWidth={5}>
+                            {orderStatsData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ChartContainer>
+                    </CardContent>
+                    <div className="flex flex-wrap gap-2 justify-center pb-4 px-4">
+                      {orderStatsData.map((o) => (
+                        <button key={o.status} className="flex items-center gap-1 hover:bg-muted/50 p-1.5 rounded-md transition-colors cursor-pointer border border-transparent hover:border-border group" onClick={() => handleStatClick('order', o.status)}>
+                          <div className="h-3 w-3 rounded-full" style={{ background: (orderChartConfig[o.status as keyof typeof orderChartConfig] as any)?.color }} />
+                          <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">{(orderChartConfig[o.status as keyof typeof orderChartConfig] as any)?.label}: {o.count}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </Card>
+                </div>
 
-          {/* Users Distribution Chart */}
-          <Card className="flex flex-col">
-            <CardHeader className="items-center pb-0">
-              <CardTitle>المستخدمون</CardTitle>
-              <CardDescription>توزيع أدوار المستخدمين</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 pb-0">
-              <ChartContainer
-                config={userChartConfig}
-                className="mx-auto aspect-square max-h-64"
-              >
-                <PieChart>
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent hideLabel />}
-                  />
-                  <Pie
-                    data={userStatsData}
-                    dataKey="count"
-                    nameKey="role"
-                    innerRadius={60}
-                    strokeWidth={5}
-                  >
-                    {userStatsData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ChartContainer>
-            </CardContent>
-            <div className="flex flex-wrap gap-2 justify-center pb-4 px-4">
-              {userStatsData.map((u) => (
+                {/* Users Distribution Chart */}
+                <div className="flex-none w-full md:w-auto snap-center px-1 md:px-0" dir="rtl">
+                  <Card className="flex flex-col h-full">
+                    <CardHeader className="items-center pb-0">
+                      <CardTitle>المستخدمون</CardTitle>
+                      <CardDescription>توزيع أدوار المستخدمين</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-1 pb-0">
+                      <ChartContainer config={userChartConfig} className="mx-auto aspect-square max-h-64">
+                        <PieChart>
+                          <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                          <Pie data={userStatsData} dataKey="count" nameKey="role" innerRadius={60} strokeWidth={5}>
+                            {userStatsData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ChartContainer>
+                    </CardContent>
+                    <div className="flex flex-wrap gap-2 justify-center pb-4 px-4">
+                      {userStatsData.map((u) => (
+                        <button key={u.role} className="flex items-center gap-1 hover:bg-muted/50 p-1.5 rounded-md transition-colors cursor-pointer border border-transparent hover:border-border group" onClick={() => handleStatClick('user', u.role)}>
+                          <div className="h-3 w-3 rounded-full" style={{ background: (userChartConfig[u.role as keyof typeof userChartConfig] as any)?.color }} />
+                          <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">{(userChartConfig[u.role as keyof typeof userChartConfig] as any)?.label}: {u.count}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </Card>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Dot indicators — mobile only */}
+          {!loading && (
+            <div className="flex md:hidden justify-center gap-2 mt-4">
+              {[0, 1, 2].map((i) => (
                 <button
-                  key={u.role}
-                  className="flex items-center gap-1 hover:bg-muted/50 p-1.5 rounded-md transition-colors cursor-pointer border border-transparent hover:border-border group"
-                  onClick={() => handleStatClick('user', u.role)}
-                >
-                  <div className="h-3 w-3 rounded-full" style={{ background: (userChartConfig[u.role as keyof typeof userChartConfig] as any)?.color }} />
-                  <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
-                    {(userChartConfig[u.role as keyof typeof userChartConfig] as any)?.label}: {u.count}
-                  </span>
-                </button>
+                  key={i}
+                  onClick={() => scrollToChart(i)}
+                  className={`h-2 rounded-full transition-all duration-300 ${activeChartIndex === i ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"}`}
+                />
               ))}
             </div>
-          </Card>
-          </>
           )}
         </div>
 
