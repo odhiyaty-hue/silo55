@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { ShoppingBag, Calendar, DollarSign, Truck, Search } from "lucide-react";
+import { ShoppingBag, Calendar, DollarSign, Truck, Search, Wallet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -43,6 +43,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [paymentFilter, setPaymentFilter] = useState<"all" | "cash" | "card" | "installment">("all");
 
   useEffect(() => {
     if (!user) {
@@ -196,28 +197,59 @@ export default function OrdersPage() {
     }
   };
 
-  const filteredOrders = orders.filter((order: OrderItem) =>
-    order.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredOrders = orders.filter((order: OrderItem) => {
+    const matchesSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesPayment = paymentFilter === "all" || order.paymentMethod === paymentFilter;
+    return matchesSearch && matchesPayment;
+  });
+
+  const paymentFilterOptions: { value: "all" | "cash" | "card" | "installment"; label: string }[] = [
+    { value: "all", label: "الكل" },
+    { value: "cash", label: "💵 عند الاستلام" },
+    { value: "card", label: "💳 تحويل بنكي" },
+    { value: "installment", label: "📅 تقسيط" },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-12">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-3">
-            <ShoppingBag className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold">طلباتي</h1>
+        <div className="flex flex-col gap-4 mb-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <ShoppingBag className="h-8 w-8 text-primary" />
+              <h1 className="text-3xl font-bold">طلباتي</h1>
+            </div>
+            <div className="relative w-full md:w-80">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="البحث برقم الطلب..."
+                className="pr-10 text-right"
+                dir="rtl"
+                data-testid="input-search-orders"
+                value={searchQuery}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
-          <div className="relative w-full md:w-80">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="البحث برقم الطلب..."
-              className="pr-10 text-right"
-              dir="rtl"
-              value={searchQuery}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-            />
+
+          <div className="flex items-center gap-2 flex-wrap" dir="rtl">
+            <div className="flex items-center gap-1 text-sm text-muted-foreground ml-1">
+              <Wallet className="h-4 w-4" />
+              <span>طريقة الدفع:</span>
+            </div>
+            {paymentFilterOptions.map((option) => (
+              <Button
+                key={option.value}
+                variant={paymentFilter === option.value ? "default" : "outline"}
+                size="sm"
+                data-testid={`filter-payment-${option.value}`}
+                onClick={() => setPaymentFilter(option.value)}
+                className="rounded-full text-sm"
+              >
+                {option.label}
+              </Button>
+            ))}
           </div>
         </div>
 
@@ -237,10 +269,14 @@ export default function OrdersPage() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {filteredOrders.length === 0 && searchQuery && (
+            {filteredOrders.length === 0 && (searchQuery || paymentFilter !== "all") && (
               <Card>
                 <CardContent className="p-12 text-center">
-                  <p className="text-lg text-muted-foreground">لا توجد طلبات تطابق بحثك</p>
+                  <Wallet className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-40" />
+                  <p className="text-lg text-muted-foreground">لا توجد طلبات تطابق الفلتر المحدد</p>
+                  <Button variant="ghost" className="mt-3" onClick={() => { setSearchQuery(""); setPaymentFilter("all"); }}>
+                    مسح الفلاتر
+                  </Button>
                 </CardContent>
               </Card>
             )}
