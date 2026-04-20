@@ -102,6 +102,7 @@ export default function AdminDashboard() {
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [cityFilter, setCityFilter] = useState<string>("all");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("all");
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [orderSearchQuery, setOrderSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
@@ -475,13 +476,18 @@ export default function AdminDashboard() {
       cityMatch = (o.buyerCity || "غير محدد") === cityFilter;
     }
 
+    let paymentMatch = true;
+    if (paymentMethodFilter !== "all") {
+      paymentMatch = (o as any).paymentMethod === paymentMethodFilter;
+    }
+
     const searchLower = orderSearchQuery.toLowerCase();
     const searchMatch =
       o.id.toLowerCase().includes(searchLower) ||
       (o.buyerEmail || "").toLowerCase().includes(searchLower) ||
       (o.sellerEmail || "").toLowerCase().includes(searchLower);
 
-    return statusMatch && cityMatch && searchMatch;
+    return statusMatch && cityMatch && paymentMatch && searchMatch;
   });
 
   const handleImportedImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1236,6 +1242,17 @@ export default function AdminDashboard() {
                             {uniqueOrderCities.map(city => (
                               <SelectItem key={city} value={city}>{city}</SelectItem>
                             ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+                          <SelectTrigger className="w-[160px]" data-testid="select-payment-method-filter">
+                            <SelectValue placeholder="طريقة الدفع" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">كل طرق الدفع</SelectItem>
+                            <SelectItem value="cash">💵 عند الاستلام</SelectItem>
+                            <SelectItem value="card">💳 تحويل بنكي</SelectItem>
+                            <SelectItem value="installment">📅 تقسيط</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
