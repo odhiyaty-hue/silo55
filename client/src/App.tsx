@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import NotFound from "@/pages/not-found";
+import MaintenancePage, { isUnderMaintenance } from "@/pages/maintenance";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import VerifyEmailPage from "@/pages/verify";
@@ -131,6 +132,14 @@ function Router() {
 }
 
 function App() {
+  if (isUnderMaintenance()) {
+    return (
+      <ThemeProvider>
+        <MaintenancePage />
+      </ThemeProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
